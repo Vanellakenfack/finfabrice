@@ -1,0 +1,30 @@
+<?php
+
+namespace App\Http\Resources\Api\V1;
+
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+class ProductResource extends JsonResource
+{
+    public function toArray(Request $request): array
+    {
+        return [
+            'id'          => $this->id,
+            'name'        => $this->name,
+            'slug'        => $this->slug,
+            'description' => $this->description,
+            'price'       => (float) $this->price,
+            'stock'       => $this->quantity,
+            'is_active'   => $this->is_active,
+            'category'    => new CategoryResource($this->whenLoaded('category')),
+            'seller'      => [
+                'id'   => $this->seller->id ?? null,
+                'name' => $this->seller->name ?? 'Vendeur inconnu',
+            ],
+            // Image du produit (unique)
+            'images'      => $this->images, // URL de l'image
+            'created_at'  => $this->created_at ? $this->created_at->format('d/m/Y') : null,
+        ];
+    }
+}
