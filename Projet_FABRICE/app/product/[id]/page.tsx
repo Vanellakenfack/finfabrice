@@ -1,12 +1,10 @@
 // app/product/[id]/page.tsx
 "use client";
 
-import React, { useState } from "react";
-import { notFound } from "next/navigation";
-import Image from "next/image";
+import React, { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import Link from "next/link";
-// Chemins d'importation basés sur votre arborescence (app/product/[id] -> ../../../)
-import { allProducts, Product } from "../../Data/products"; 
+import { productService } from "../../../services/productService";
 import { useCart } from "../../Context/CartContext"; 
 import { 
   FaShoppingCart, 
@@ -15,48 +13,99 @@ import {
   FaTruck, 
   FaWarehouse,
   FaCheckCircle,
-  FaTimesCircle,
 } from "react-icons/fa";
 
-// Interface pour les props de la page dynamique
-interface ProductPageProps {
-  params: {
-    id: string; // L'ID vient de l'URL
-  };
-}
-
-const ProductPage: React.FC<ProductPageProps> = ({ params }) => {
-  const productId = parseInt(params.id);
+const ProductPage: React.FC = () => {
+  const params = useParams();
+  const productId = parseInt(params.id as string);
   const { addToCart } = useCart();
   
-  // Trouver le produit actuel
-  const product = allProducts.find((p) => p.id === productId);
+  const [product, setProduct] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [mainImage, setMainImage] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<'description' | 'features'>('description');
 
-  if (!product) {
-    notFound();
-  }
+  // Charger le produit depuis l'API
+  useEffect(() => {
+    async function loadProduct() {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const productsData = await productService.getAll();
+        const foundProduct = productsData.find((p: any) => p.id === productId);
+        
+        if (!foundProduct) {
+          setError("Produit non trouvé");
+        } else {
+          setProduct(foundProduct);
+          const imageUrl = foundProduct.images 
+            ? (foundProduct.images.startsWith('http') 
+                ? foundProduct.images 
+                : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/images${foundProduct.images.replace('/storage', '')}`)
+            : '/images/placeholder.jpg';
+          setMainImage(imageUrl);
+        }
+      } catch (err: any) {
+        console.error('Erreur chargement produit:', err);
+        setError(err.response?.data?.message || 'Impossible de charger le produit');
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    if (productId) {
+      loadProduct();
+    }
+  }, [productId]);
 
-  // État local pour la galerie d'images
-  const [mainImage, setMainImage] = useState<string>(product.images[0]);
-  // État local pour les onglets (Description, Caractéristiques...)
-  const [activeTab, setActiveTab] = useState<'description' | 'features' | 'reviews'>('description');
-  
-  // Trouver les produits similaires (de la même catégorie, max 4)
-  const similarProducts = allProducts
-    .filter(
-      (p) => p.category === product.category && p.id !== product.id
-    )
-    .slice(0, 4); 
-
-  // Gestion de l'ajout au panier
   const handleAddToCart = () => {
-    if (product.stock > 0) {
+    if (product && (product.quantity || product.stock) > 0) {
       addToCart(product);
       alert(`${product.name} a été ajouté à votre panier !`);
-    } else {
-      alert("Ce produit est en rupture de stock.");
     }
   };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-12">
+        <div className="flex flex-col items-center justify-center py-20">
+          <div className="w-12 h-12 border-4 border-gray-200 border-t-orange-500 rounded-full animate-spin"></div>
+          <p className="mt-4 text-gray-500">Chargement du produit...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error || !product) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-12">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center max-w-md mx-auto">
+          <p className="text-red-600 mb-4">{error || "Produit non trouvé"}</p>
+          <Link 
+            href="/products" 
+            className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+          >
+            Voir tous les produits
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const stock = product.quantity || product.stock || 0;
+  const categoryName = typeof product.category === 'object' ? product.category?.name : product.category;
+  const sellerName = product.seller?.name || product.brand || 'Inconnu';
+
+  // Trouver les produits similaires (de la même catégorie, max 4)
+  const similarProducts = product.category?.products 
+    ? product.category.products.filter(
+      (p) => p.id !== product.id
+    ).slice(0, 4) 
+    : [];
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-12 bg-white">
@@ -71,33 +120,46 @@ const ProductPage: React.FC<ProductPageProps> = ({ params }) => {
           
           {/* VIGNETTES (Gallery) */}
           <div className="flex md:flex-col space-x-2 md:space-x-0 md:space-y-3 overflow-x-auto md:overflow-hidden pr-2 md:pr-0">
-            {product.images.map((img, index) => (
+            {Array.isArray(product.images) ? product.images.map((img, index) => (
               <div 
                 key={index}
                 onClick={() => setMainImage(img)}
-                className={`w-16 h-16 md:w-20 md:h-20 relative cursor-pointer border-2 rounded-lg transition-all 
+                className={`w-16 h-16 md:w-20 md:h-20 relative cursor-pointer border-2 rounded-lg transition-all overflow-hidden
                            ${mainImage === img ? 'border-orange-500 shadow-lg' : 'border-gray-200 hover:border-orange-300'}`}
               >
-                <Image
-                  src={img}
+                <img
+                  src={typeof img === 'string' ? (img.startsWith('http') ? img : `http://localhost:8000/api/v1/images${img.replace('/storage', '')}`) : mainImage}
                   alt={`${product.name} - ${index + 1}`}
-                  layout="fill"
-                  objectFit="contain"
-                  className="p-1"
+                  className="w-full h-full object-contain p-1"
                 />
               </div>
-            ))}
+            )) : (
+              <div 
+                onClick={() => setMainImage(mainImage)}
+                className="w-16 h-16 md:w-20 md:h-20 relative cursor-pointer border-2 rounded-lg transition-all overflow-hidden border-orange-500 shadow-lg"
+              >
+                <img
+                  src={mainImage}
+                  alt={product.name}
+                  className="w-full h-full object-contain p-1"
+                />
+              </div>
+            )}
           </div>
           
           {/* IMAGE PRINCIPALE */}
-          <div className="flex-1 relative min-h-96 bg-gray-50 rounded-xl shadow-lg p-6">
-            <Image
-              src={mainImage}
-              alt={product.name}
-              layout="fill"
-              objectFit="contain"
-              priority // Charger l'image principale rapidement
-            />
+          <div className="flex-1 relative min-h-96 bg-gray-50 rounded-xl shadow-lg p-6 flex items-center justify-center">
+            {mainImage ? (
+              <img
+                src={mainImage}
+                alt={product.name}
+                className="max-h-full max-w-full object-contain"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gray-200 rounded-lg">
+                <span className="text-gray-400">Pas d&apos;image</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -110,19 +172,19 @@ const ProductPage: React.FC<ProductPageProps> = ({ params }) => {
           {/* Marque et Catégorie */}
           <div className="text-sm space-y-1">
             <p className="text-gray-500">
-              Marque: <span className="font-semibold text-gray-800">{product.brand}</span>
+              Marque: <span className="font-semibold text-gray-800">{product.brand?.name || product.brand || 'Non spécifié'}</span>
             </p>
             <p className="text-gray-500">
-              Catégorie: <span className="font-semibold text-gray-800">{product.category}</span>
+              Catégorie: <span className="font-semibold text-gray-800">{categoryName || 'Non catégorisé'}</span>
             </p>
           </div>
           
           {/* Notation */}
           <div className="flex items-center text-yellow-500 border-b pb-4">
             <FaStar className="mr-1" />
-            <span className="text-lg font-bold">{product.rating.toFixed(1)}</span>
+            <span className="text-lg font-bold">{(product.rating || 0).toFixed(1)}</span>
             <span className="ml-2 text-gray-500">
-              ({product.reviews.toLocaleString()} avis clients)
+              ({(product.reviews || 0).toLocaleString()} avis clients)
             </span>
           </div>
           
@@ -259,11 +321,10 @@ const ProductPage: React.FC<ProductPageProps> = ({ params }) => {
                 className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1 block overflow-hidden group"
               >
                 <div className="relative h-40 w-full bg-gray-100 p-3">
-                    <Image
-                      src={similarProduct.images[0]}
+                    <img
+                      src={similarProduct.images[0].startsWith('http') ? similarProduct.images[0] : `http://localhost:8000/api/v1/images${similarProduct.images[0].replace('/storage', '')}`}
                       alt={similarProduct.name}
-                      layout="fill"
-                      objectFit="contain"
+                      className="w-full h-full object-contain"
                     />
                 </div>
                 <div className="p-4">
@@ -273,7 +334,7 @@ const ProductPage: React.FC<ProductPageProps> = ({ params }) => {
                     <p className="font-bold text-orange-600 text-xl mt-2">
                       {similarProduct.price.toFixed(2)} €
                     </p>
-                    <span className="text-sm text-gray-500 block">{similarProduct.category}</span>
+                    <span className="text-sm text-gray-500 block">{typeof similarProduct.category === 'object' ? similarProduct.category?.name : similarProduct.category}</span>
                 </div>
               </Link>
             ))}
