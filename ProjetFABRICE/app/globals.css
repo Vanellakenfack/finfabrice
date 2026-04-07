@@ -1,0 +1,38 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+@import "tailwindcss";
+
+@import "bootstrap-icons/font/bootstrap-icons.css";
+@import "remixicon/fonts/remixicon.css";
+
+/* tailwind v4 uses @import "tailwindcss" and plus custom styles */
+
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --prim-color:oklch(0.488 0.243 264.376);
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 84% 4.9%;
+
+  --Inter:"Inter", sans-serif;
+}
+
+
+
+
+@keyframes scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-infinite-scroll {
+  display: flex;
+  width: max-content;
+  /* Ralenti à 60s pour un défilement majestueux avec des grands logos */
+  animation: scroll 60s linear infinite; 
+}
+
+.animate-infinite-scroll:hover {
+  animation-play-state: paused;
+}
