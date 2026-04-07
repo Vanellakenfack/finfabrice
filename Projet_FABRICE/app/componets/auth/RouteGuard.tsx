@@ -2,6 +2,8 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSelector } from 'react-redux'
+import { RootState } from '../../Data/store'
 
 // Interface temporaire pour éviter l'erreur
 interface User {
@@ -9,7 +11,7 @@ interface User {
   email: string
   firstName: string
   lastName: string
-  role: 'acheteur' | 'fournisseur' | 'admin'
+  roles: ('acheteur' | 'fournisseur' | 'admin')[]
   isVerified: boolean
   createdAt: string
 }
@@ -19,20 +21,8 @@ interface AuthState {
   token: string | null
   isLoading: boolean
   error: string | null
+  isAuthenticated: boolean
 }
-
-// Données mockées temporaires - À remplacer par Redux
-const mockAuthState: AuthState = {
-  user: null, // Changez ceci pour tester différents rôles
-  token: null,
-  isLoading: false,
-  error: null
-}
-
-// Exemples pour tester :
-// user: { id: '1', email: 'test@test.com', firstName: 'John', lastName: 'Doe', role: 'acheteur', isVerified: true, createdAt: '2024-01-01' }
-// user: { id: '2', email: 'vendeur@test.com', firstName: 'Jane', lastName: 'Smith', role: 'fournisseur', isVerified: true, createdAt: '2024-01-01' }
-// user: { id: '3', email: 'admin@test.com', firstName: 'Admin', lastName: 'User', role: 'admin', isVerified: true, createdAt: '2024-01-01' }
 
 interface RouteGuardProps {
   children: React.ReactNode
@@ -44,36 +34,32 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({
   requiredRole 
 }) => {
   const router = useRouter()
-  const { user, isLoading } = mockAuthState // Temporaire - À remplacer par useSelector
+  const { user, isAuthenticated, isLoading } = useSelector((state: RootState) => state.auth)
 
   useEffect(() => {
     if (!isLoading) {
       // Si l'utilisateur n'est pas connecté
-      if (!user) {
+      if (!isAuthenticated || !user) {
         router.push('/login')
         return
       }
 
       // Si un rôle spécifique est requis mais que l'utilisateur ne l'a pas
-      if (requiredRole && user.role !== requiredRole) {
-        // Rediriger vers le dashboard approprié
-        switch (user.role) {
-          case 'acheteur':
-            router.push('/Acheteur')
-            break
-          case 'fournisseur':
-            router.push('/fournisseur/dashboard')
-            break
-          case 'admin':
-            router.push('/admin/dashboard')
-            break
-          default:
-            router.push('/login')
+      if (requiredRole && user.roles && !user.roles.includes(requiredRole)) {
+        // Rediriger vers le dashboard approprié selon le rôle
+        if (user.roles.includes('admin')) {
+          router.push('/Dashbord')
+        } else if (user.roles.includes('fournisseur')) {
+          router.push('/fournisseur/dashboard')
+        } else if (user.roles.includes('acheteur')) {
+          router.push('/Acheteur')
+        } else {
+          router.push('/login')
         }
         return
       }
     }
-  }, [user, isLoading, requiredRole, router])
+  }, [user, isAuthenticated, isLoading, requiredRole, router])
 
   // Afficher un loader pendant la vérification
   if (isLoading) {
@@ -85,7 +71,7 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({
   }
 
   // Si l'utilisateur est connecté et a le bon rôle, afficher les enfants
-  if (user && (!requiredRole || user.role === requiredRole)) {
+  if (isAuthenticated && user && (!requiredRole || (user.roles && user.roles.includes(requiredRole)))) {
     return <>{children}</>
   }
 

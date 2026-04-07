@@ -38,7 +38,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
 
         // --- ESPACE VENDEURS & ADMINS ---
-      //  Route::middleware(['role:vendeur|admin'])->group(function () {
+        Route::middleware(['role:vendeur|admin'])->group(function () {
             // CRUD complet des produits pour les vendeurs
             Route::apiResource('products', ProductController::class)->except(['index', 'show']);
             
@@ -54,15 +54,15 @@ Route::prefix('v1')->group(function () {
             Route::get('/users/{user}', [UserController::class, 'show']);
             Route::put('/users/{user}', [UserController::class, 'update']);
             Route::delete('/users/{user}', [UserController::class, 'destroy']);
-       // });
+        });
 
         // --- ESPACE ACHETEURS (Ou n'importe quel connecté) ---
-       // Route::middleware(['role:acheteur|vendeur|admin'])->group(function () {
+        Route::middleware(['role:acheteur|vendeur|admin'])->group(function () {
             // Gestion des commandes
             Route::get('/orders', [OrderController::class, 'index']);
             Route::post('/orders', [OrderController::class, 'store']);
             Route::get('/orders/{order}', [OrderController::class, 'show']);
-       // });
+        });
 
        //route paniers
   // Route::get('/cart', [CartController::class, 'index']);

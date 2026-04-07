@@ -8,84 +8,108 @@ import React, {
   ReactNode,
   useCallback,
   useMemo,
+  useEffect,
 } from "react";
-// Assurez-vous d'ajuster le chemin si nécessaire.
-// Si le dossier Data est à la racine, cela devrait fonctionner.
-import { Product } from "../Data/products";
 
-// 1. Définir le type d'un article dans le panier
+// Type d'un article dans le panier
 export interface CartItem {
-  product: Product;
+  product: {
+    id: number;
+    name: string;
+    price: number;
+    images: string[];
+    brand?: string;
+  };
   quantity: number;
 }
 
-// 2. Définir le type du contexte
 interface CartContextType {
   cartItems: CartItem[];
   cartTotalQuantity: number;
   cartTotalPrice: number;
-  addToCart: (product: Product) => void;
+  addToCart: (product: CartItem["product"]) => void;
   updateQuantity: (productId: number, quantity: number) => void;
   removeFromCart: (productId: number) => void;
+  clearCart: () => void;
 }
 
-// Valeur initiale par défaut (utilisée pour créer le contexte)
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-// 3. Le Provider qui enveloppe l'application
-interface CartProviderProps {
-  children: ReactNode;
-}
+const CART_STORAGE_KEY = "elite_shop_cart";
 
-export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
+export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  // Fonction pour ajouter un produit au panier
-  const addToCart = useCallback((product: Product) => {
+  // Charger le panier depuis localStorage au montage
+  useEffect(() => {
+    try {
+      const savedCart = localStorage.getItem(CART_STORAGE_KEY);
+      if (savedCart) {
+        setCartItems(JSON.parse(savedCart));
+      }
+    } catch (error) {
+      console.error("Erreur lors du chargement du panier:", error);
+    }
+    setIsLoaded(true);
+  }, []);
+
+  // Sauvegarder le panier dans localStorage à chaque changement
+  useEffect(() => {
+    if (isLoaded) {
+      try {
+        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
+      } catch (error) {
+        console.error("Erreur lors de la sauvegarde du panier:", error);
+      }
+    }
+  }, [cartItems, isLoaded]);
+
+  const addToCart = useCallback((product: CartItem["product"]) => {
     setCartItems((prevItems) => {
       const existingItem = prevItems.find((item) => item.product.id === product.id);
 
       if (existingItem) {
-        // Si le produit existe, augmente la quantité de 1
+        toast.success(`${product.name} ajouté au panier (${existingItem.quantity + 1})`);
         return prevItems.map((item) =>
           item.product.id === product.id
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       } else {
-        // Sinon, ajoute un nouvel article avec quantité 1
+        toast.success(`${product.name} ajouté au panier`);
         return [...prevItems, { product, quantity: 1 }];
       }
     });
   }, []);
 
-  // Fonction pour mettre à jour la quantité d'un produit
-  const updateQuantity = useCallback(
-    (productId: number, newQuantity: number) => {
-      setCartItems((prevItems) => {
-        if (newQuantity <= 0) {
-          // Si la quantité est <= 0, on supprime l'article
-          return prevItems.filter((item) => item.product.id !== productId);
-        }
+  const updateQuantity = useCallback((productId: number, newQuantity: number) => {
+    setCartItems((prevItems) => {
+      if (newQuantity <= 0) {
+        toast.info("Article retiré du panier");
+        return prevItems.filter((item) => item.product.id !== productId);
+      }
 
-        return prevItems.map((item) =>
-          item.product.id === productId
-            ? { ...item, quantity: newQuantity }
-            : item
-        );
-      });
-    },
-    []
-  );
+      return prevItems.map((item) =>
+        item.product.id === productId
+          ? { ...item, quantity: newQuantity }
+          : item
+      );
+    });
+  }, []);
 
-  // Fonction pour supprimer un produit du panier
   const removeFromCart = useCallback((productId: number) => {
     setCartItems((prevItems) =>
       prevItems.filter((item) => item.product.id !== productId)
     );
+    toast.info("Article retiré du panier");
   }, []);
 
-  // 4. Calculs des totaux (optimisés avec useMemo)
+  const clearCart = useCallback(() => {
+    setCartItems([]);
+    toast.info("Panier vidé");
+  }, []);
+
   const { cartTotalQuantity, cartTotalPrice } = useMemo(() => {
     const totalQuantity = cartItems.reduce(
       (sum, item) => sum + item.quantity,
@@ -98,7 +122,6 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     return { cartTotalQuantity: totalQuantity, cartTotalPrice: totalPrice };
   }, [cartItems]);
 
-  // 5. La valeur du contexte fournie aux composants
   const contextValue = useMemo(
     () => ({
       cartItems,
@@ -107,15 +130,9 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       addToCart,
       updateQuantity,
       removeFromCart,
+      clearCart,
     }),
-    [
-      cartItems,
-      cartTotalQuantity,
-      cartTotalPrice,
-      addToCart,
-      updateQuantity,
-      removeFromCart,
-    ]
+    [cartItems, cartTotalQuantity, cartTotalPrice, addToCart, updateQuantity, removeFromCart, clearCart]
   );
 
   return (
@@ -123,7 +140,6 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   );
 };
 
-// 6. Hook personnalisé pour une utilisation facile dans les composants
 export const useCart = () => {
   const context = useContext(CartContext);
   if (context === undefined) {
