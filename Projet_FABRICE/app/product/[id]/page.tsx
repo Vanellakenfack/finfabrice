@@ -1,24 +1,36 @@
-// app/product/[id]/page.tsx
-"use client";
+'use client';
 
 import React, { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, notFound, useRouter } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import { productService } from "../../../services/productService";
+import { allProducts } from "../../Data/products"; 
 import { useCart } from "../../Context/CartContext"; 
 import { 
-  FaShoppingCart, 
-  FaEnvelope, 
-  FaStar, 
-  FaTruck, 
-  FaWarehouse,
-  FaCheckCircle,
+  FaShoppingCart, FaStar, FaTruck, FaCheckCircle, 
+  FaWhatsapp, FaEnvelope, FaArrowLeft, FaShieldAlt, FaPlus
 } from "react-icons/fa";
 
-const ProductPage: React.FC = () => {
+// Ajout d'une petite animation CSS personnalisée dans le JS
+// Vous pouvez aussi mettre ça dans votre globals.css si vous préférez
+const animationStyles = `
+  @keyframes popIn {
+    0% { opacity: 0; transform: scale(0.5) translateY(20px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .animate-popIn {
+    animation: popIn 0.4s ease-out forwards;
+  }
+`;
+
+const ProductPage = () => {
   const params = useParams();
+  const router = useRouter();
   const productId = parseInt(params.id as string);
-  const { addToCart } = useCart();
+  
+  // 1. J'ai ajouté 'cartTotalQuantity' ici pour écouter les changements
+  const { addToCart, cartTotalQuantity } = useCart(); 
   
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -26,354 +38,234 @@ const ProductPage: React.FC = () => {
   const [mainImage, setMainImage] = useState<string>("");
   const [activeTab, setActiveTab] = useState<'description' | 'features'>('description');
 
-  // Fonction utilitaire pour construire l'URL de l'image
-  const buildImageUrl = (imageData: any): string => {
-    if (!imageData) return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgMTAwTDEyMCA4MEwxNDAgMTAwTDEyMCAxMjBaIiBmaWxsPSIjOUNBM0FGIi8+CjxjaXJjbGUgY3g9IjEwMCIgY3k9IjkwIiByPSI4IiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPg==';
+  // --- LOGIQUE D'AUTHENTIFICATION SIMULÉE ---
+  const isAuthenticated = false; 
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-    const baseUrl = apiUrl.replace('/api/v1', '').replace(/\/$/, '') || 'http://localhost:8000';
-
-    if (typeof imageData === 'string') {
-      if (imageData.startsWith('http')) {
-        return imageData;
-      } else if (imageData.startsWith('/')) {
-        return `${baseUrl}${imageData}`;
-      } else {
-        return `${baseUrl}/storage/${imageData}`;
-      }
-    } else if (Array.isArray(imageData) && imageData.length > 0) {
-      // Si c'est un tableau, prendre la première image
-      return buildImageUrl(imageData[0]);
-    }
-
-    return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgMTAwTDEyMCA4MEwxNDAgMTAwTDEyMCAxMjBaIiBmaWxsPSIjOUNBM0FGIi8+CjxjaXJjbGUgY3g9IjEwMCIgY3k9IjkwIiByPSI4IiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPg==';
-  };
-
-  // Charger le produit depuis l'API
   useEffect(() => {
     async function loadProduct() {
       try {
         setLoading(true);
-        setError(null);
-        
         const productsData = await productService.getAll();
-        const foundProduct = productsData.find((p: any) => p.id === productId);
-        
-        if (!foundProduct) {
-          setError("Produit non trouvé");
-        } else {
-          setProduct(foundProduct);
-          const imageUrl = buildImageUrl(foundProduct.images);
-          setMainImage(imageUrl);
-          console.log('Product loaded:', foundProduct.name, 'Image data:', foundProduct.images, 'Final URL:', imageUrl);
+        let found: any = productsData.find((p: any) => p.id === productId);
+
+        if (!found) {
+          found = allProducts.find(p => p.id === productId);
         }
-      } catch (err: any) {
-        console.error('Erreur chargement produit:', err);
-        setError(err.response?.data?.message || 'Impossible de charger le produit');
+
+        if (found) {
+          setProduct(found);
+          setMainImage(found.images?.[0] || "/placeholder.png");
+        } else {
+          setError("Produit non trouvé");
+        }
+      } catch (err) {
+        const fallback = allProducts.find(p => p.id === productId);
+        if (fallback) {
+          setProduct(fallback);
+          setMainImage(fallback.images?.[0] || "/placeholder.png");
+        } else {
+          setError("Erreur technique");
+        }
       } finally {
         setLoading(false);
       }
     }
-    
-    if (productId) {
-      loadProduct();
-    }
+    loadProduct();
   }, [productId]);
 
-  const handleAddToCart = () => {
-    if (product && (product.quantity || product.stock) > 0) {
+  const handleBuyNow = () => {
+    if (!isAuthenticated) {
+      const currentUrl = `/product/${productId}`;
+      router.push(`/login?redirect=${encodeURIComponent(currentUrl)}`);
+    } else {
       addToCart(product);
-      alert(`${product.name} a été ajouté à votre panier !`);
+      router.push(`/checkout/${productId}`);
     }
   };
 
-  // Loading state
-  if (loading) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        <div className="flex flex-col items-center justify-center py-20">
-          <div className="w-12 h-12 border-4 border-gray-200 border-t-orange-500 rounded-full animate-spin"></div>
-          <p className="mt-4 text-gray-500">Chargement du produit...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Error state
-  if (error || !product) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center max-w-md mx-auto">
-          <p className="text-red-600 mb-4">{error || "Produit non trouvé"}</p>
-          <Link 
-            href="/products" 
-            className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
-          >
-            Voir tous les produits
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  const stock = product.quantity || product.stock || 0;
-  const categoryName = typeof product.category === 'object' ? product.category?.name : product.category;
-  const sellerName = product.seller?.name || product.brand || 'Inconnu';
-
-  // Trouver les produits similaires (de la même catégorie, max 4)
-  const similarProducts = product.category?.products 
-    ? product.category.products.filter(
-      (p) => p.id !== product.id
-    ).slice(0, 4) 
-    : [];
+  if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-gray-400">Chargement...</div>;
+  if (error || !product) return notFound();
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-12 bg-white">
-      
-      {/* ---------------------------------------------------- */}
-      {/* SECTION PRINCIPALE (DÉTAILS ET ACHAT) */}
-      {/* ---------------------------------------------------- */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        
-        {/* COLONNE 1 & 2: Images & Nom/Prix */}
-        <div className="lg:col-span-2 flex flex-col md:flex-row gap-6">
-          
-          {/* VIGNETTES (Gallery) */}
-          <div className="flex md:flex-col space-x-2 md:space-x-0 md:space-y-3 overflow-x-auto md:overflow-hidden pr-2 md:pr-0">
-            {Array.isArray(product.images) ? product.images.map((img, index) => {
-              const imgUrl = buildImageUrl(img);
-              return (
-                <div 
-                  key={index}
-                  onClick={() => setMainImage(imgUrl)}
-                  className={`w-16 h-16 md:w-20 md:h-20 relative cursor-pointer border-2 rounded-lg transition-all overflow-hidden
-                             ${mainImage === imgUrl ? 'border-orange-500 shadow-lg' : 'border-gray-200 hover:border-orange-300'}`}
-                >
-                  <img
-                    src={imgUrl}
-                    alt={`${product.name} - ${index + 1}`}
-                    className="w-full h-full object-contain p-1"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgMTAwTDEyMCA4MEwxNDAgMTAwTDEyMCAxMjBaIiBmaWxsPSIjOUNBM0FGIi8+CjxjaXJjbGUgY3g9IjEwMCIgY3k9IjkwIiByPSI4IiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPg==';
-                    }}
-                  />
-                </div>
-              );
-            }) : (
-              <div 
-                onClick={() => setMainImage(mainImage)}
-                className="w-16 h-16 md:w-20 md:h-20 relative cursor-pointer border-2 rounded-lg transition-all overflow-hidden border-orange-500 shadow-lg"
-              >
-                <img
-                  src={mainImage}
-                  alt={product.name}
-                  className="w-full h-full object-contain p-1"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgMTAwTDEyMCA4MEwxNDAgMTAwTDEyMCAxMjBaIiBmaWxsPSIjOUNBM0FGIi8+CjxjaXJjbGUgY3g9IjEwMCIgY3k9IjkwIiByPSI4IiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPg==';
-                  }}
-                />
-              </div>
-            )}
+    // J'ai ajouté une classe 'relative' ici pour s'assurer que le bouton flottant se positionne par rapport à l'écran
+    <div className="max-w-7xl mx-auto px-4 py-10 relative">
+      {/* Insertion des styles d'animation */}
+      <style>{animationStyles}</style>
+
+      <Link href="/products" className="flex items-center gap-2 text-gray-500 hover:text-orange-500 mb-8 transition-colors">
+        <FaArrowLeft /> Retour aux produits
+      </Link>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        {/* GALERIE IMAGES */}
+        <div className="space-y-4">
+          <div className="relative h-[500px] w-full rounded-3xl overflow-hidden bg-gray-100 shadow-inner border border-gray-100">
+            <Image src={mainImage} alt={product.name} fill className="object-contain p-6" priority />
           </div>
-          
-          {/* IMAGE PRINCIPALE */}
-          <div className="flex-1 relative min-h-96 bg-gray-50 rounded-xl shadow-lg p-6 flex items-center justify-center">
-            {mainImage ? (
-              <img
-                src={mainImage}
-                alt={product.name}
-                className="max-h-full max-w-full object-contain"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gray-200 rounded-lg">
-                <span className="text-gray-400">Pas d&apos;image</span>
-              </div>
-            )}
+          <div className="flex gap-4 overflow-x-auto py-2">
+            {product.images?.map((img: string, idx: number) => (
+              <button 
+                key={idx} 
+                onClick={() => setMainImage(img)}
+                className={`relative w-24 h-24 rounded-xl overflow-hidden border-2 transition-all ${mainImage === img ? 'border-orange-500 scale-105 shadow-md' : 'border-transparent opacity-70'}`}
+              >
+                <Image src={img} alt={`view-${idx}`} fill className="object-cover" />
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* COLONNE 3: Informations, Prix et Actions */}
-        <div className="space-y-6">
-          <h1 className="text-3xl font-extrabold text-gray-900 border-b pb-3">
-            {product.name}
-          </h1>
+        {/* INFOS PRODUIT */}
+        <div className="flex flex-col">
+          <span className="text-orange-500 font-bold tracking-widest uppercase text-sm mb-2">Elite Shop Premium</span>
+          <h1 className="text-4xl font-extrabold text-gray-900 mb-4">{product.name}</h1>
+          
+          <div className="flex items-center gap-4 mb-6">
+            <div className="flex text-yellow-400"><FaStar /><FaStar /><FaStar /><FaStar /><FaStar /></div>
+            <span className="text-gray-500 text-sm">(128 avis vérifiés)</span>
+          </div>
 
-          {/* Marque et Catégorie */}
-          <div className="text-sm space-y-1">
-            <p className="text-gray-500">
-              Marque: <span className="font-semibold text-gray-800">{product.brand?.name || product.brand || 'Non spécifié'}</span>
-            </p>
-            <p className="text-gray-500">
-              Catégorie: <span className="font-semibold text-gray-800">{categoryName || 'Non catégorisé'}</span>
+          <div className="bg-orange-50 p-6 rounded-2xl mb-8 border border-orange-100">
+            <div className="flex items-baseline gap-3">
+              <span className="text-4xl font-black text-orange-600">{product.price.toFixed(2)} €</span>
+              <span className="text-gray-400 line-through text-lg">{(product.price * 1.3).toFixed(2)} €</span>
+            </div>
+            <p className="text-green-600 text-sm font-bold mt-2 flex items-center gap-2">
+              <FaCheckCircle /> En stock - Livraison offerte
             </p>
           </div>
-          
-          {/* Notation */}
-          <div className="flex items-center text-yellow-500 border-b pb-4">
-            <FaStar className="mr-1" />
-            <span className="text-lg font-bold">{(product.rating || 0).toFixed(1)}</span>
-            <span className="ml-2 text-gray-500">
-              ({(product.reviews || 0).toLocaleString()} avis clients)
-            </span>
+
+          {/* SECTION DES BOUTONS D'ACTION */}
+          <div className="flex flex-col gap-4">
+            
+            {/* LIGNE 1 : ACTIONS PANIER ET ACHAT IMMEDIAT */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <button 
+                onClick={() => addToCart(product)}
+                className="w-full border-2 border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-3 active:scale-95"
+              >
+                <FaPlus /> AJOUTER AU PANIER
+              </button>
+
+              <button 
+                onClick={handleBuyNow}
+                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 rounded-2xl transition-all shadow-lg flex items-center justify-center gap-3 active:scale-95"
+              >
+                <FaShoppingCart /> ACHETER MAINTENANT
+              </button>
+            </div>
+
+            {/* LIGNE 2 : COMMUNICATION */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* <button 
+                className="w-full h-14 border border-gray-200 text-gray-700 hover:border-orange-300 hover:bg-orange-50 hover:text-orange-600 rounded-2xl flex items-center justify-center gap-3 transition-all font-semibold active:scale-95"
+                title="Contacter le vendeur en interne"
+              >
+                <FaEnvelope className="text-xl" />
+                <span>Messagerie</span>
+              </button> */}
+
+                 <button 
+                    onClick={() => router.push(`/messages?vendor=${product.vendorId || product.id}`)}
+                    className="group w-full h-14 border border-gray-200 text-gray-700 
+                    hover:border-orange-400 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 
+                    hover:text-orange-600 rounded-2xl flex items-center justify-center gap-3 
+                    transition-all duration-300 font-semibold active:scale-95 shadow-sm hover:shadow-md"
+                    title="Contacter le vendeur"
+                  >
+                    <FaEnvelope className="text-xl transition-transform group-hover:scale-110" />
+                    <span>Messagerie</span>
+                  </button>     
+
+
+              <a 
+                href={`https://wa.me/0000000000?text=Bonjour, je souhaite commander : ${product.name}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full h-14 border border-green-200 text-green-700 hover:border-green-300 hover:bg-green-50 hover:text-green-700 rounded-2xl flex items-center justify-center gap-3 transition-all font-semibold active:scale-95"
+              >
+                <FaWhatsapp className="text-2xl" />
+                <span>WhatsApp</span>
+              </a>
+            </div>
+
           </div>
-          
-          {/* Prix et Réduction */}
-          <div className="space-y-1">
-            {product.originalPrice && (
-                <p className="text-gray-500 text-xl line-through">
-                    Prix de base: {product.originalPrice.toFixed(2)} €
-                </p>
-            )}
-            <p className="text-5xl font-bold text-orange-600">
-              {product.price.toFixed(2)} €
-            </p>
-            {product.originalPrice && (
-                <p className="text-green-600 font-semibold">
-                    Vous économisez: {(product.originalPrice - product.price).toFixed(2)} €
-                </p>
-            )}
-          </div>
-          
-          {/* Info Livraison / Stock */}
-          <div className="space-y-2 border-t pt-4">
-            <div className="flex items-center gap-3">
+
+          {/* RÉASSURANCE */}
+          <div className="grid grid-cols-2 gap-4 border-t mt-8 pt-8 border-gray-100">
+            <div className="flex items-center gap-3 text-sm text-gray-600">
+              <FaShieldAlt className="text-orange-500 text-xl" />
+              <span>Paiement sécurisé</span>
+            </div>
+            <div className="flex items-center gap-3 text-sm text-gray-600">
               <FaTruck className="text-orange-500 text-xl" />
-              <p className="text-gray-700">
-                Livraison: <span className="font-semibold">{product.shipping}</span> ({product.delivery})
-              </p>
+              <span>Livraison 48h</span>
             </div>
-            <div className="flex items-center gap-3">
-              <FaWarehouse 
-                className={product.stock > 0 ? "text-green-500 text-xl" : "text-red-500 text-xl"} 
-              />
-              <p className={`font-semibold ${product.stock > 0 ? "text-green-600" : "text-red-600"}`}>
-                {product.stock > 0 ? "En Stock" : "Rupture de stock"} ({product.stock} unités)
-              </p>
-            </div>
-          </div>
-
-          {/* --- Boutons d'Action --- */}
-          <div className="flex flex-col space-y-3 pt-6">
-            
-            {/* 1. Ajouter au panier (Action Principale) */}
-            <button
-              onClick={handleAddToCart}
-              className="w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-lg font-bold py-3 px-6 rounded-lg transition shadow-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
-              disabled={product.stock <= 0}
-            >
-              <FaShoppingCart /> Ajouter au panier
-            </button>
-            
-            {/* 2. Passer la commande (Achat immédiat) */}
-            <button
-              className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-lg transition shadow-md disabled:bg-gray-400"
-              disabled={product.stock <= 0}
-            >
-              <FaCheckCircle /> Acheter maintenant
-            </button>
-            
-            {/* 3. Contacter le vendeur (Action Secondaire) */}
-            <Link
-              href="/contact-seller" 
-              className="w-full flex items-center justify-center gap-2 border border-blue-500 text-blue-500 hover:bg-blue-50 font-semibold py-3 px-6 rounded-lg transition"
-            >
-              <FaEnvelope /> Contacter le vendeur
-            </Link>
           </div>
         </div>
       </div>
-      
-      {/* ---------------------------------------------------- */}
-      {/* DESCRIPTION ET CARACTÉRISTIQUES (ONGLETS) */}
-      {/* ---------------------------------------------------- */}
-      <div className="mt-16 bg-white p-6 rounded-xl shadow-lg">
-        {/* Barre d'onglets */}
-        <div className="flex border-b border-gray-200 mb-6">
-          <button
-            onClick={() => setActiveTab('description')}
-            className={`px-6 py-3 font-semibold transition-colors ${
-              activeTab === 'description'
-                ? 'border-b-4 border-orange-500 text-orange-600'
-                : 'text-gray-600 hover:text-orange-500'
-            }`}
+
+      {/* TABS DESCRIPTION/FEATURES */}
+      <div className="mt-20">
+        <div className="flex border-b mb-8 overflow-x-auto">
+          <button 
+            onClick={() => setActiveTab('description')} 
+            className={`px-10 py-4 font-bold text-lg whitespace-nowrap transition-all ${activeTab === 'description' ? 'border-b-4 border-orange-500 text-orange-600' : 'text-gray-400'}`}
           >
             Description
           </button>
-          <button
-            onClick={() => setActiveTab('features')}
-            className={`px-6 py-3 font-semibold transition-colors ${
-              activeTab === 'features'
-                ? 'border-b-4 border-orange-500 text-orange-600'
-                : 'text-gray-600 hover:text-orange-500'
-            }`}
+          <button 
+            onClick={() => setActiveTab('features')} 
+            className={`px-10 py-4 font-bold text-lg whitespace-nowrap transition-all ${activeTab === 'features' ? 'border-b-4 border-orange-500 text-orange-600' : 'text-gray-400'}`}
           >
             Caractéristiques
           </button>
         </div>
         
-        {/* Contenu de l'onglet */}
-        <div className="p-4 bg-gray-50 rounded-lg">
-          {activeTab === 'description' && (
-            <p className="text-gray-700 leading-loose">{product.description}</p>
-          )}
-          
-          {activeTab === 'features' && (
-            <ul className="list-disc list-inside space-y-2 text-gray-700">
-              {product.features.map((feature, index) => (
-                <li key={index} className="flex items-start">
-                    <FaCheckCircle className="mt-1 mr-2 text-green-500 flex-shrink-0" />
-                    <span>{feature}</span>
-                </li>
+        <div className="p-8 bg-gray-50 rounded-3xl border border-gray-100 leading-relaxed shadow-inner">
+          {activeTab === 'description' ? (
+            <p className="text-gray-700 text-lg">{product.description || "Aucune description détaillée disponible."}</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {(product.features || ["Produit certifié Premium", "Garantie incluse", "Qualité contrôlée"]).map((f: string, i: number) => (
+                <div key={i} className="flex items-center gap-4 bg-white p-5 rounded-xl shadow-sm border-l-4 border-green-500">
+                  <FaCheckCircle className="text-green-500 text-lg" />
+                  <span className="font-medium text-gray-800">{f}</span>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
-          
-          {/* L'onglet 'reviews' pourrait être implémenté ici en utilisant les données existantes */}
         </div>
       </div>
-      
-      
-      {/* ---------------------------------------------------- */}
-      {/* SECTION DES PRODUITS SIMILAIRES */}
-      {/* ---------------------------------------------------- */}
-      {similarProducts.length > 0 && (
-        <div className="mt-16">
-          <h2 className="text-3xl font-bold text-gray-800 mb-8 border-b pb-3">
-            Vous aimerez aussi
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {similarProducts.map((similarProduct) => (
-              // Utiliser Link pour la navigation
-              <Link
-                href={`/product/${similarProduct.id}`}
-                key={similarProduct.id}
-                className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1 block overflow-hidden group"
-              >
-                <div className="relative h-40 w-full bg-gray-100 p-3">
-                    <img
-                      src={buildImageUrl(Array.isArray(similarProduct.images) ? similarProduct.images[0] : similarProduct.images)}
-                      alt={similarProduct.name}
-                      className="w-full h-full object-contain"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgMTAwTDEyMCA4MEwxNDAgMTAwTDEyMCAxMjBaIiBmaWxsPSIjOUNBM0FGIi8+CjxjaXJjbGUgY3g9IjEwMCIgY3k9IjkwIiByPSI4IiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPg==';
-                      }}
-                    />
-                </div>
-                <div className="p-4">
-                    <h3 className="font-semibold text-gray-800 truncate group-hover:text-orange-600 transition">
-                      {similarProduct.name}
-                    </h3>
-                    <p className="font-bold text-orange-600 text-xl mt-2">
-                      {similarProduct.price.toFixed(2)} €
-                    </p>
-                    <span className="text-sm text-gray-500 block">{typeof similarProduct.category === 'object' ? similarProduct.category?.name : similarProduct.category}</span>
-                </div>
-              </Link>
-            ))}
+
+      {/* ============================================================================== */}
+      {/* BOUTON FLOTTANT DU PANIER (FAB) - AJOUTÉ POUR L'ERGONOMIE */}
+      {/* Apparaît uniquement si cartTotalQuantity > 0 avec une animation popIn */}
+      {/* ============================================================================== */}
+      {cartTotalQuantity > 0 && (
+        <Link 
+          href="/cart" 
+          className="fixed bottom-8 right-8 z-50 animate-popIn group"
+          title="Voir mon panier"
+        >
+          {/* Corps du bouton : Effet verre flottant */}
+          <div className="relative bg-white/80 backdrop-blur-md border border-gray-100 p-5 rounded-full shadow-2xl transition-all duration-300 group-hover:shadow-orange-200 group-hover:scale-110 group-hover:bg-white active:scale-95">
+            
+            {/* Icône Panier aux couleurs EliteShop */}
+            <FaShoppingCart className="text-3xl text-orange-500 transition-colors group-hover:text-orange-600" />
+            
+            {/* Badge de quantité : Rouge vif, bien visible */}
+            <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold w-7 h-7 rounded-full flex items-center justify-center border-2 border-white shadow-lg transform transition-transform group-hover:scale-110">
+              {cartTotalQuantity}
+            </span>
           </div>
-        </div>
+          
+          {/* Petite lueur d'arrière-plan au survol */}
+          <div className="absolute inset-0 rounded-full bg-orange-400 opacity-0 group-hover:opacity-20 blur-xl transition-opacity"></div>
+        </Link>
       )}
-      
+      {/* ============================================================================== */}
+
     </div>
   );
 };

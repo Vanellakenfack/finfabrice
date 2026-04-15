@@ -142,34 +142,47 @@ const ProductsSection: React.FC = () => {
                           </span>
                         )}
                         {/* Affichage de l'image */}
-                        <div className="w-full h-full flex items-center justify-center rounded-2xl">
-                          {product.images && typeof product.images === 'string' ? (
-                            <>
-                              {(() => {
-                                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
-                                // Utiliser la route API /api/v1/images/ au lieu de /storage/
-                                const imageUrl = product.images.startsWith('http') 
-                                  ? product.images 
-                                  : `${apiUrl}/images${product.images.replace('/storage', '')}`;
-                                console.log('URL image construite:', imageUrl);
-                                return (
-                                  <img 
-                                    src={imageUrl}
-                                    alt={product.name}
-                                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                                    onError={(e) => {
-                                      console.error('Erreur chargement image:', product.images, 'URL:', (e.target as HTMLImageElement).src);
-                                      (e.target as HTMLImageElement).style.display = 'none';
-                                    }}
-                                  />
-                                );
-                              })()}
-                            </>
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                              <span className="text-gray-400 text-sm">Pas d'image</span>
-                            </div>
-                          )}
+                        <div className="w-full h-full flex items-center justify-center rounded-2xl bg-gray-100">
+                          {(() => {
+                            // Fonction utilitaire pour construire l'URL de l'image
+                            const buildImageUrl = (imageData: any): string => {
+                              if (!imageData) return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgMTAwTDEyMCA4MEwxNDAgMTAwTDEyMCAxMjBaIiBmaWxsPSIjOUNBM0FGIi8+CjxjaXJjbGUgY3g9IjEwMCIgY3k9IjkwIiByPSI4IiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPg==';
+
+                              const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+                              const baseUrl = apiUrl.replace('/api/v1', '').replace(/\/$/, '') || 'http://localhost:8000';
+
+                              if (typeof imageData === 'string') {
+                                if (imageData.startsWith('http')) {
+                                  return imageData;
+                                } else if (imageData.startsWith('/')) {
+                                  return `${baseUrl}${imageData}`;
+                                } else {
+                                  return `${baseUrl}/storage/${imageData}`;
+                                }
+                              } else if (Array.isArray(imageData) && imageData.length > 0) {
+                                // Si c'est un tableau, prendre la première image
+                                return buildImageUrl(imageData[0]);
+                              }
+
+                              return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgMTAwTDEyMCA4MEwxNDAgMTAwTDEyMCAxMjBaIiBmaWxsPSIjOUNBM0FGIi8+CjxjaXJjbGUgY3g9IjEwMCIgY3k9IjkwIiByPSI4IiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPg==';
+                            };
+
+                            const imageUrl = buildImageUrl(product.images);
+                            console.log('Product:', product.name, 'Images:', product.images, 'Final URL:', imageUrl);
+
+                            return (
+                              <img
+                                src={imageUrl}
+                                alt={product.name}
+                                className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                                onError={(e) => {
+                                  console.error('Erreur chargement image:', product.images, 'URL:', (e.target as HTMLImageElement).src);
+                                  (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgMTAwTDEyMCA4MEwxNDAgMTAwTDEyMCAxMjBaIiBmaWxsPSIjOUNBM0FGIi8+CjxjaXJjbGUgY3g9IjEwMCIgY3k9IjkwIiByPSI4IiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPg==';
+                                  (e.target as HTMLImageElement).onerror = null;
+                                }}
+                              />
+                            );
+                          })()}
                         </div>
                       </div>
                     </Link>

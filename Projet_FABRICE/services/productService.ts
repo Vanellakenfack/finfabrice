@@ -3,14 +3,17 @@ import {Products, CreateProductRequest} from '../app/types/Products'
 
 import api from '../lib/axios';
 
-type Paginated <T> = {data:T[]; meta?: any;links:any}
-export const productService ={
+type Paginated<T> = { data: T[]; meta?: any; links?: any };
+export const productService = {
 
-    getAll: async ():Promise <Products[]> =>{
-        const reponse = await api.get <Paginated <Products> | Products[] >('/products');
-        const result = Array.isArray( reponse.data)? reponse.data:reponse.data.data ?? [];
-        return result;
-    },
+  getAll: async (): Promise<Products[]> => {
+    const response = await api.get<Paginated<Products> | Products[]>('/products');
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
+
+    return response.data?.data ?? [];
+  },
 
     getOne : async (id:number | string ):Promise  <Products> =>{
         const response=await api.get <Products>(`/products/${id}`)
@@ -45,7 +48,7 @@ export const productService ={
         return response.data.product;
     },
 
-    update: async (id: number | string, data: Partial<Products> & { images?: File }): Promise<Products> => {
+    update: async (id: number | string, data: Partial<CreateProductRequest> & { images?: File }): Promise<Products> => {
         // Si une image est présente, utiliser FormData
         if (data.images) {
             const formData = new FormData();
