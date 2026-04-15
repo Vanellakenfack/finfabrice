@@ -26,6 +26,29 @@ const ProductPage: React.FC = () => {
   const [mainImage, setMainImage] = useState<string>("");
   const [activeTab, setActiveTab] = useState<'description' | 'features'>('description');
 
+  // Fonction utilitaire pour construire l'URL de l'image
+  const buildImageUrl = (imageData: any): string => {
+    if (!imageData) return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgMTAwTDEyMCA4MEwxNDAgMTAwTDEyMCAxMjBaIiBmaWxsPSIjOUNBM0FGIi8+CjxjaXJjbGUgY3g9IjEwMCIgY3k9IjkwIiByPSI4IiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPg==';
+
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const baseUrl = apiUrl.replace('/api/v1', '').replace(/\/$/, '') || 'http://localhost:8000';
+
+    if (typeof imageData === 'string') {
+      if (imageData.startsWith('http')) {
+        return imageData;
+      } else if (imageData.startsWith('/')) {
+        return `${baseUrl}${imageData}`;
+      } else {
+        return `${baseUrl}/storage/${imageData}`;
+      }
+    } else if (Array.isArray(imageData) && imageData.length > 0) {
+      // Si c'est un tableau, prendre la première image
+      return buildImageUrl(imageData[0]);
+    }
+
+    return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgMTAwTDEyMCA4MEwxNDAgMTAwTDEyMCAxMjBaIiBmaWxsPSIjOUNBM0FGIi8+CjxjaXJjbGUgY3g9IjEwMCIgY3k9IjkwIiByPSI4IiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPg==';
+  };
+
   // Charger le produit depuis l'API
   useEffect(() => {
     async function loadProduct() {
@@ -40,12 +63,9 @@ const ProductPage: React.FC = () => {
           setError("Produit non trouvé");
         } else {
           setProduct(foundProduct);
-          const imageUrl = foundProduct.images 
-            ? (foundProduct.images.startsWith('http') 
-                ? foundProduct.images 
-                : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/images${foundProduct.images.replace('/storage', '')}`)
-            : '/images/placeholder.jpg';
+          const imageUrl = buildImageUrl(foundProduct.images);
           setMainImage(imageUrl);
+          console.log('Product loaded:', foundProduct.name, 'Image data:', foundProduct.images, 'Final URL:', imageUrl);
         }
       } catch (err: any) {
         console.error('Erreur chargement produit:', err);
@@ -120,20 +140,26 @@ const ProductPage: React.FC = () => {
           
           {/* VIGNETTES (Gallery) */}
           <div className="flex md:flex-col space-x-2 md:space-x-0 md:space-y-3 overflow-x-auto md:overflow-hidden pr-2 md:pr-0">
-            {Array.isArray(product.images) ? product.images.map((img, index) => (
-              <div 
-                key={index}
-                onClick={() => setMainImage(img)}
-                className={`w-16 h-16 md:w-20 md:h-20 relative cursor-pointer border-2 rounded-lg transition-all overflow-hidden
-                           ${mainImage === img ? 'border-orange-500 shadow-lg' : 'border-gray-200 hover:border-orange-300'}`}
-              >
-                <img
-                  src={typeof img === 'string' ? (img.startsWith('http') ? img : `http://localhost:8000/api/v1/images${img.replace('/storage', '')}`) : mainImage}
-                  alt={`${product.name} - ${index + 1}`}
-                  className="w-full h-full object-contain p-1"
-                />
-              </div>
-            )) : (
+            {Array.isArray(product.images) ? product.images.map((img, index) => {
+              const imgUrl = buildImageUrl(img);
+              return (
+                <div 
+                  key={index}
+                  onClick={() => setMainImage(imgUrl)}
+                  className={`w-16 h-16 md:w-20 md:h-20 relative cursor-pointer border-2 rounded-lg transition-all overflow-hidden
+                             ${mainImage === imgUrl ? 'border-orange-500 shadow-lg' : 'border-gray-200 hover:border-orange-300'}`}
+                >
+                  <img
+                    src={imgUrl}
+                    alt={`${product.name} - ${index + 1}`}
+                    className="w-full h-full object-contain p-1"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgMTAwTDEyMCA4MEwxNDAgMTAwTDEyMCAxMjBaIiBmaWxsPSIjOUNBM0FGIi8+CjxjaXJjbGUgY3g9IjEwMCIgY3k9IjkwIiByPSI4IiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPg==';
+                    }}
+                  />
+                </div>
+              );
+            }) : (
               <div 
                 onClick={() => setMainImage(mainImage)}
                 className="w-16 h-16 md:w-20 md:h-20 relative cursor-pointer border-2 rounded-lg transition-all overflow-hidden border-orange-500 shadow-lg"
@@ -142,6 +168,9 @@ const ProductPage: React.FC = () => {
                   src={mainImage}
                   alt={product.name}
                   className="w-full h-full object-contain p-1"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgMTAwTDEyMCA4MEwxNDAgMTAwTDEyMCAxMjBaIiBmaWxsPSIjOUNBM0FGIi8+CjxjaXJjbGUgY3g9IjEwMCIgY3k9IjkwIiByPSI4IiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPg==';
+                  }}
                 />
               </div>
             )}
@@ -322,9 +351,12 @@ const ProductPage: React.FC = () => {
               >
                 <div className="relative h-40 w-full bg-gray-100 p-3">
                     <img
-                      src={similarProduct.images[0].startsWith('http') ? similarProduct.images[0] : `http://localhost:8000/api/v1/images${similarProduct.images[0].replace('/storage', '')}`}
+                      src={buildImageUrl(Array.isArray(similarProduct.images) ? similarProduct.images[0] : similarProduct.images)}
                       alt={similarProduct.name}
                       className="w-full h-full object-contain"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgMTAwTDEyMCA4MEwxNDAgMTAwTDEyMCAxMjBaIiBmaWxsPSIjOUNBM0FGIi8+CjxjaXJjbGUgY3g9IjEwMCIgY3k9IjkwIiByPSI4IiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPg==';
+                      }}
                     />
                 </div>
                 <div className="p-4">
