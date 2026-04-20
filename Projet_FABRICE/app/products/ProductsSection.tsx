@@ -170,6 +170,8 @@ const ProductsSection: React.FC = () => {
                             const imageUrl = buildImageUrl(product.images);
                             console.log('Product:', product.name, 'Images:', product.images, 'Final URL:', imageUrl);
 
+                            console.log('Tentative de chargement de l\'image:', imageUrl);
+
                             return (
                               <img
                                 src={imageUrl}

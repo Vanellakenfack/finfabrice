@@ -3,8 +3,13 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useSelector, useDispatch } from 'react-redux';
+import { RootState } from '../../Data';
+import { logout } from '../../Data/slices/authSlice';
+import { authService } from '../../../services/auth.service';
 // Importation de FaShoppingCart pour l'icône du panier
-import { FaUser, FaSearch, FaShoppingCart } from 'react-icons/fa'; 
+import { FaUser, FaSearch, FaShoppingCart, FaChevronDown, FaSignOutAlt, FaUserCircle } from 'react-icons/fa'; 
 
 // Importation du hook personnalisé pour accéder à l'état du panier
 import { useCart } from '../../Context/CartContext'; 
@@ -12,17 +17,39 @@ import { useCart } from '../../Context/CartContext';
 export default function Navbar() {
   const [isMobile, setIsMobile] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  
+  // Récupérer l'état d'authentification depuis Redux
+  const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const dispatch = useDispatch();
+  const router = useRouter();
   
   // Récupérer la quantité totale d'articles dans le panier
   const { cartTotalQuantity } = useCart();
 
-  // ✅ Gérer la détection de la taille d’écran
+  // Fermer le menu utilisateur quand on clique ailleurs
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 992);
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showUserMenu && !(event.target as Element).closest('.user-menu')) {
+        setShowUserMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showUserMenu]);
+
+  // Fonction de déconnexion
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+      dispatch(logout());
+      router.push('/');
+      setShowUserMenu(false);
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+    }
+  };
 
   return (
     <div className="relative z-50">
@@ -108,12 +135,62 @@ export default function Navbar() {
               )}
             </Link>
 
-            <Link
-              href="/login"
-              className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md flex items-center gap-2 transition"
-            >
-              <FaUser /> <span className="hidden sm:inline">Connexion</span>
-            </Link>
+            {/* Menu utilisateur ou bouton de connexion */}
+            {isAuthenticated && user ? (
+              <div className="relative user-menu">
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-2 rounded-md transition"
+                >
+                  <FaUserCircle className="text-lg" />
+                  <span className="hidden sm:inline font-medium">{user.name}</span>
+                  <FaChevronDown className="text-sm" />
+                </button>
+                
+                {/* Menu déroulant utilisateur */}
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+                    <div className="py-1">
+                      <div className="px-4 py-2 text-sm text-gray-500 border-b border-gray-100">
+                        Connecté en tant que {user.name}
+                      </div>
+                      <Link
+                        href="/profile"
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => setShowUserMenu(false)}
+                      >
+                        <FaUserCircle />
+                        Mon profil
+                      </Link>
+                      {user.roles?.includes('admin') && (
+                        <Link
+                          href="/Dashbord"
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          onClick={() => setShowUserMenu(false)}
+                        >
+                          <FaUser />
+                          Administration
+                        </Link>
+                      )}
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                      >
+                        <FaSignOutAlt />
+                        Déconnexion
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md flex items-center gap-2 transition"
+              >
+                <FaUser /> <span className="hidden sm:inline">Connexion</span>
+              </Link>
+            )}
 
             {/* --- Bouton menu mobile --- */}
             {isMobile && (
@@ -132,6 +209,19 @@ export default function Navbar() {
       {isMobile && showMobileMenu && (
         <div className="absolute top-full left-0 w-full bg-white shadow-md border-t">
           <ul className="flex flex-col">
+            {/* Informations utilisateur en mobile */}
+            {isAuthenticated && user && (
+              <li className="border-b bg-gray-50 px-5 py-3">
+                <div className="flex items-center gap-2">
+                  <FaUserCircle className="text-gray-600" />
+                  <span className="font-medium text-gray-800">{user.name}</span>
+                </div>
+                {user.roles?.includes('admin') && (
+                  <span className="text-xs text-orange-600 font-medium">Administrateur</span>
+                )}
+              </li>
+            )}
+            
             <li>
               <Link href="/" className="block px-5 py-3 hover:bg-orange-50">
                 Accueil
@@ -142,19 +232,49 @@ export default function Navbar() {
                 Nos produits
               </Link>
             </li>
-            <li className="border-t">
-              <Link href="/Acheteur" className="block px-5 py-3 hover:bg-orange-50">
-                Acheteurs
-              </Link>
-            </li>
-            <li className="border-t">
-              <Link href="/fournisseur" className="block px-5 py-3 hover:bg-orange-50">
-                Fournisseurs
-              </Link>
-            </li>
+            
+            {/* Menu conditionnel selon l'état de connexion */}
+            {isAuthenticated && user ? (
+              <>
+                {user.roles?.includes('admin') && (
+                  <li className="border-t">
+                    <Link href="/Dashbord" className="block px-5 py-3 hover:bg-orange-50">
+                      🛠️ Administration
+                    </Link>
+                  </li>
+                )}
+                <li className="border-t">
+                  <Link href="/profile" className="block px-5 py-3 hover:bg-orange-50">
+                    👤 Mon profil
+                  </Link>
+                </li>
+                <li className="border-t">
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-left px-5 py-3 hover:bg-red-50 text-red-600"
+                  >
+                    🚪 Déconnexion
+                  </button>
+                </li>
+              </>
+            ) : (
+              <>
+                <li className="border-t">
+                  <Link href="/login" className="block px-5 py-3 hover:bg-orange-50">
+                    🔐 Connexion
+                  </Link>
+                </li>
+                <li className="border-t">
+                  <Link href="/register" className="block px-5 py-3 hover:bg-orange-50">
+                    📝 Inscription
+                  </Link>
+                </li>
+              </>
+            )}
+            
             <li className="border-t">
               <Link href="/Contact" className="block px-5 py-3 hover:bg-orange-50">
-                Contact
+                📞 Contact
               </Link>
             </li>
           </ul>

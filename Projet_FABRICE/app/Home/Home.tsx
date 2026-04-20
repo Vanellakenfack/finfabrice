@@ -92,10 +92,26 @@ export default function HomePage() {
 
   const displayFeaturedProducts = visibleFeaturedProducts.map((prod) => {
     const isApiProduct = (prod as Products).name !== undefined;
+    
+    // Fonction utilitaire pour construire l'URL de l'image
+    const buildImageUrl = (imageData: string | null): string => {
+      if (!imageData) return '/images/default.jpg';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const baseUrl = apiUrl.replace('/api/v1', '').replace(/\/$/, '') || 'http://localhost:8000';
+      
+      if (imageData.startsWith('http')) {
+        return imageData;
+      } else if (imageData.startsWith('/')) {
+        return `${baseUrl}${imageData}`;
+      } else {
+        return `${baseUrl}/storage/${imageData}`;
+      }
+    };
+
     return {
       id: prod.id,
       title: isApiProduct ? (prod as Products).name : (prod as any).title,
-      img: isApiProduct ? ((prod as Products).images || '/images/default.jpg') : (prod as any).img,
+      img: isApiProduct ? buildImageUrl((prod as Products).images) : (prod as any).img,
       priceLabel: isApiProduct ? `€${(prod as Products).price.toFixed(2)}` : (prod as any).price,
       old: (prod as any).old,
       badge: (prod as any).badge,

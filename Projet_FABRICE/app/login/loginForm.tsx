@@ -52,25 +52,27 @@ export const LoginForm = () => {
       // 3. Mise à jour de Redux
       dispatch(setCredentials({ user: userData, token }))
       
-      // 4. Détermination du rôle
-      const role = userData?.role || 'acheteur'
-      console.log('Rôle détecté:', role)
-
+      // 4. Détermination du rôle (vérification dans le tableau roles)
+      const userRoles = userData?.roles || []
+      const isAdmin = userRoles.includes('admin')
+      const isVendeur = userRoles.includes('vendeur') || userRoles.includes('fournisseur')
+      const isAcheteur = userRoles.includes('acheteur')
+      
+      console.log('Rôles détectés:', userRoles)
+      
       // 5. Redirection selon le rôle
-      switch (role) {
-        case 'acheteur':
-          router.push('/acheteur')
-          break
-        case 'vendeur':
-        case 'fournisseur':
-          router.push('/fournisseur')
-          break
-        case 'admin':
-          router.push('/Dashbord')
-          break
-        default:
-          console.warn('Rôle non reconnu, redirection vers /acheteur')
-          router.push('/acheteur')
+      if (isAdmin) {
+        console.log('Redirection vers Dashboard admin')
+        router.push('/Dashbord')
+      } else if (isVendeur) {
+        console.log('Redirection vers fournisseur')
+        router.push('/fournisseur')
+      } else if (isAcheteur) {
+        console.log('Redirection vers acheteur')
+        router.push('/acheteur')
+      } else {
+        console.warn('Aucun rôle reconnu, redirection vers /acheteur')
+        router.push('/acheteur')
       }
       
     } catch (err: any) {

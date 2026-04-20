@@ -29,10 +29,8 @@ interface CartContextType {
   removeFromCart: (productId: number) => void;
 }
 
-// Valeur initiale par défaut (utilisée pour créer le contexte)
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-// 3. Le Provider qui enveloppe l'application
 interface CartProviderProps {
   children: ReactNode;
 }
@@ -40,7 +38,6 @@ interface CartProviderProps {
 export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
-  // Fonction pour ajouter un produit au panier
   const addToCart = useCallback((product: Product) => {
     setCartItems((prevItems) => {
       const existingItem = prevItems.find((item) => item.product.id === product.id);

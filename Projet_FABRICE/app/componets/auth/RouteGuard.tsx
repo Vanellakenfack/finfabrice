@@ -52,7 +52,7 @@ export const RouteGuard: React.FC<RouteGuardProps> = ({
         } else if (user.roles.includes('fournisseur')) {
           router.push('/fournisseur/dashboard')
         } else if (user.roles.includes('acheteur')) {
-          router.push('/Acheteur')
+          router.push('/acheteur')
         } else {
           router.push('/login')
         }

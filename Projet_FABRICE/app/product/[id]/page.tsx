@@ -53,16 +53,20 @@ const ProductPage = () => {
         }
 
         if (found) {
-          setProduct(found);
-          setMainImage(found.images?.[0] || "/placeholder.png");
+          // Normaliser les images en tableau
+          const normalizedImages = Array.isArray(found.images) ? found.images : [found.images].filter(Boolean);
+          setProduct({ ...found, images: normalizedImages });
+          setMainImage(normalizedImages[0] || "/placeholder.png");
         } else {
           setError("Produit non trouvé");
         }
       } catch (err) {
         const fallback = allProducts.find(p => p.id === productId);
         if (fallback) {
-          setProduct(fallback);
-          setMainImage(fallback.images?.[0] || "/placeholder.png");
+          // Normaliser les images en tableau
+          const normalizedImages = Array.isArray(fallback.images) ? fallback.images : [fallback.images].filter(Boolean);
+          setProduct({ ...fallback, images: normalizedImages });
+          setMainImage(normalizedImages[0] || "/placeholder.png");
         } else {
           setError("Erreur technique");
         }
@@ -86,6 +90,21 @@ const ProductPage = () => {
   if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-gray-400">Chargement...</div>;
   if (error || !product) return notFound();
 
+  // Fonction utilitaire pour construire l'URL de l'image
+  const buildImageUrl = (imageData: string): string => {
+    if (!imageData) return '/placeholder.png';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const baseUrl = apiUrl.replace('/api/v1', '').replace(/\/$/, '') || 'http://localhost:8000';
+    
+    if (imageData.startsWith('http')) {
+      return imageData;
+    } else if (imageData.startsWith('/')) {
+      return `${baseUrl}${imageData}`;
+    } else {
+      return `${baseUrl}/storage/${imageData}`;
+    }
+  };
+
   return (
     // J'ai ajouté une classe 'relative' ici pour s'assurer que le bouton flottant se positionne par rapport à l'écran
     <div className="max-w-7xl mx-auto px-4 py-10 relative">
@@ -100,7 +119,7 @@ const ProductPage = () => {
         {/* GALERIE IMAGES */}
         <div className="space-y-4">
           <div className="relative h-[500px] w-full rounded-3xl overflow-hidden bg-gray-100 shadow-inner border border-gray-100">
-            <Image src={mainImage} alt={product.name} fill className="object-contain p-6" priority />
+            <Image src={buildImageUrl(mainImage)} alt={product.name} fill className="object-contain p-6" priority />
           </div>
           <div className="flex gap-4 overflow-x-auto py-2">
             {product.images?.map((img: string, idx: number) => (
@@ -109,7 +128,7 @@ const ProductPage = () => {
                 onClick={() => setMainImage(img)}
                 className={`relative w-24 h-24 rounded-xl overflow-hidden border-2 transition-all ${mainImage === img ? 'border-orange-500 scale-105 shadow-md' : 'border-transparent opacity-70'}`}
               >
-                <Image src={img} alt={`view-${idx}`} fill className="object-cover" />
+                <Image src={buildImageUrl(img)} alt={`view-${idx}`} fill className="object-cover" />
               </button>
             ))}
           </div>
