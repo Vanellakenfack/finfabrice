@@ -9,10 +9,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, HasRoles;
+    use HasApiTokens, HasFactory, Notifiable, HasRoles, SoftDeletes;
 // Force le guard web pour éviter l'erreur de Spatie si vous n'avez pas défini de guard API spécifique
 protected $guard_name = 'web';
     protected $fillable = [
@@ -35,11 +36,18 @@ protected $guard_name = 'web';
         'two_factor_enabled' => 'boolean',
     ];
 
-    /**
-     * Un utilisateur (Vendeur) peut avoir plusieurs produits.
-     */
     public function products(): HasMany
     {
         return $this->hasMany(Product::class);
+    }
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(\App\Models\Sales\Order::class);
+    }
+
+    public function cartItems(): HasMany
+    {
+        return $this->hasMany(\App\Models\Catalog\Cart::class);
     }
 }

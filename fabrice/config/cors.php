@@ -15,23 +15,23 @@ return [
     |
     */
 
-   // config/cors.php
-'paths' => ['api/*', 'sanctum/csrf-cookie', 'login', 'register','products','/products','*' ],
+    'paths' => ['api/*', 'sanctum/csrf-cookie'],
 
-'allowed_methods' => ['*'],
+    'allowed_methods' => ['*'],
 
-// Remplace '*' par l'URL exacte de ton Next.js
-'allowed_origins' => ['*'], 
+    'allowed_origins' => [
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+    ],
 
-'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => [],
 
-'allowed_headers' => ['*'],
+    'allowed_headers' => ['*'],
 
-'exposed_headers' => [],
+    'exposed_headers' => [],
 
-'max_age' => 0,
+    'max_age' => 0,
 
-// TRÈS IMPORTANT : doit être à true
-'supports_credentials' => true,
+    'supports_credentials' => true,
 
 ];

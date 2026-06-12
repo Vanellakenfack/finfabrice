@@ -2,6 +2,7 @@
 
 namespace App\Models\Catalog;
 
+use App\Models\User;
 use App\Models\Catalog\Product;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

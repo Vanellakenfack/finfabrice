@@ -17,7 +17,7 @@ class RegisterRequest extends FormRequest
             'name'     => ['required', 'string', 'max:255'],
             'email'    => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'phone'    => ['nullable', 'string', 'max:20', 'unique:users'], // Inscription via téléphone 
-            'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()], // Sécurité [cite: 39]
+            'password' => ['required', 'confirmed', Password::min(10)->letters()->mixedCase()->numbers()->symbols()],
             'role'     => ['required', 'string', 'in:vendeur,acheteur'], // Acteurs [cite: 48]
         ];
     }

@@ -5,14 +5,18 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\Api\V1\AuthController;
 
-// Route temporaire pour servir les images (contourne le problème de permissions)
+// Route pour servir les images depuis le storage
 Route::get('/storage/{path}', function ($path) {
-    $fullPath = storage_path('app/public/' . $path);
-    if (file_exists($fullPath)) {
-        return response()->file($fullPath);
+    $path = ltrim($path, '/');
+    if (str_contains($path, '..') || str_contains($path, "\0")) {
+        abort(400);
     }
-    abort(404);
-})->where('path', '.*');
+    $fullPath = storage_path('app/public/' . $path);
+    if (!file_exists($fullPath) || !is_file($fullPath)) {
+        abort(404);
+    }
+    return response()->file($fullPath);
+})->where('path', '[a-zA-Z0-9_\-\./]+');
 
 /*
 |--------------------------------------------------------------------------

@@ -4,12 +4,13 @@ namespace App\Models\Catalog;
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Product extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'user_id', 
@@ -19,13 +20,13 @@ class Product extends Model
         'description', 
         'price', 
         'quantity',
-        'images', // URL de l'image (stockée comme string simple)
+        'images',
         'is_active'
     ];
 
     protected $casts = [
         'price' => 'decimal:2',
-        // 'images' => 'array', // Désactivé - stocké comme string simple
+        'images' => 'array',
         'is_active' => 'boolean'
     ];
 

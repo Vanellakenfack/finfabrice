@@ -27,6 +27,7 @@ interface CartContextType {
   addToCart: (product: Product) => void;
   updateQuantity: (productId: number, quantity: number) => void;
   removeFromCart: (productId: number) => void;
+  clearCart: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -82,6 +83,8 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     );
   }, []);
 
+  const clearCart = useCallback(() => setCartItems([]), []);
+
   // 4. Calculs des totaux (optimisés avec useMemo)
   const { cartTotalQuantity, cartTotalPrice } = useMemo(() => {
     const totalQuantity = cartItems.reduce(
@@ -104,6 +107,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       addToCart,
       updateQuantity,
       removeFromCart,
+      clearCart,
     }),
     [
       cartItems,
@@ -112,6 +116,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       addToCart,
       updateQuantity,
       removeFromCart,
+      clearCart,
     ]
   );
 

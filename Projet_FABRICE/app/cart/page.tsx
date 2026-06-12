@@ -6,7 +6,8 @@ import Image from "next/image";
 import { useRouter } from "next/navigation"; 
 import { FaTrashAlt, FaMinus, FaPlus, FaLock, FaArrowRight, FaArrowLeft, FaShoppingCart } from "react-icons/fa";
 import { useCart, CartItem as CartItemType } from "../Context/CartContext";
-import { Button } from "../componets/ui/button"; 
+import { buildImageUrl } from "../../lib/imageUrl";
+import { Button } from "../componets/ui/button";
 
 interface CartItemProps {
   item: CartItemType;
@@ -28,7 +29,7 @@ const CartItem: React.FC<CartItemProps> = ({ item }) => {
     <div className="flex items-center border-b py-6 group">
       <div className="w-24 h-24 relative mr-6 bg-gray-50 rounded-xl overflow-hidden border border-gray-100 p-2">
         <Image
-          src={product.images[0]}
+          src={buildImageUrl(product.images)}
           alt={product.name}
           fill
           className="object-contain transition-transform group-hover:scale-110"
@@ -78,19 +79,8 @@ const CartPage = () => {
   const shippingCost = cartItems.length > 0 ? 0 : 0; // Offerte ou fixe
   const grandTotal = cartTotalPrice + shippingCost;
 
-  // --- LOGIQUE D'AUTHENTIFICATION (SIMULATION) ---
-  // À lier plus tard avec votre système réel (ex: const { user } = useAuth())
-  const isAuthenticated = false; 
-
   const handleProceedToCheckout = () => {
-    if (!isAuthenticated) {
-      // Redirection vers login avec mémoire du retour vers le panier
-      const returnUrl = encodeURIComponent("/cart");
-      router.push(`/login?redirect=${returnUrl}`);
-    } else {
-      // L'utilisateur est connecté, on l'envoie vers la page de paiement globale
-      router.push("/checkout");
-    }
+    router.push('/checkout');
   };
 
   if (cartItems.length === 0) {

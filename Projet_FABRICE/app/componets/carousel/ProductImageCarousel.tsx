@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { FiChevronLeft, FiChevronRight, FiZoomIn, FiExternalLink } from 'react-icons/fi';
+import { buildImageUrl } from '../../../lib/imageUrl';
 
 type ProductImageCarouselProps = {
   images?: string[];           // si non fourni, on utilisera defaultImages
@@ -71,7 +72,7 @@ const ProductImageCarousel: React.FC<ProductImageCarouselProps> = ({
           {/* Image (next/image avec fill) */}
           <div className="absolute inset-0">
             <Image
-              src={images[current]}
+              src={buildImageUrl(images[current])}
               alt={`Image produit ${current + 1}`}
               fill
               sizes="(max-width: 640px) 100vw, 800px"
@@ -132,7 +133,7 @@ const ProductImageCarousel: React.FC<ProductImageCarouselProps> = ({
             onClick={() => setCurrent(i)}
             aria-label={`Miniature ${i + 1}`}
           >
-            <Image src={img} alt={`Miniature ${i + 1}`} width={80} height={80} className="object-cover w-full h-full" />
+            <Image src={buildImageUrl(img)} alt={`Miniature ${i + 1}`} width={80} height={80} className="object-cover w-full h-full" />
           </button>
         ))}
 

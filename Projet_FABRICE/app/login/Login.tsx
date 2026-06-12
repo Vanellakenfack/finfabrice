@@ -1,12 +1,10 @@
 
 'use client'
 
+import { Suspense, useState } from 'react'
 import { LoginForm } from './loginForm'
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
-  const router = useRouter()
   const [userType, setUserType] = useState<'buyer' | 'vendor'>('buyer')
 
   return (
@@ -47,7 +45,9 @@ export default function LoginPage() {
           </button>
         </div>
 
-        <LoginForm userType={userType} />
+        <Suspense fallback={<div className="h-48 bg-gray-50 rounded-xl animate-pulse" />}>
+          <LoginForm userType={userType} />
+        </Suspense>
 
         <div className="text-center">
           <p className="text-sm text-gray-600">

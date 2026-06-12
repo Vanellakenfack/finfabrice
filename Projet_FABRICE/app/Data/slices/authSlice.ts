@@ -34,7 +34,7 @@ const authSlice = createSlice({
       state.error = null
     },
     // Succès de la connexion ou récupération du profil
-    setCredentials: (state, action: PayloadAction<{ user: User; token: string }>) => {
+    setCredentials: (state, action: PayloadAction<{ user: User; token: string | null }>) => {
       state.isLoading = false
       state.isAuthenticated = true
       state.user = action.payload.user

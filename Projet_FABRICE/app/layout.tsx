@@ -5,6 +5,8 @@ import { CartProvider } from "./Context/CartContext";
 import { ReduxProvider } from "@/providers/ReduxProviders";
 import { AuthProvider } from "@/providers/AuthProvider";
 import LayoutClient from "./LayoutClient";
+import { Toaster } from "react-hot-toast";
+import ChatWidget from "./componets/chat/ChatWidget";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -33,12 +35,21 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body className={`${inter.variable} ${poppins.variable} antialiased`}>
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 4000,
+            style: { fontWeight: 600, fontSize: '14px', borderRadius: '12px' },
+            success: { iconTheme: { primary: '#f97316', secondary: '#fff' } },
+          }}
+        />
         <CartProvider>
           <ReduxProvider>
             <AuthProvider>
               <LayoutClient>
                 {children}
               </LayoutClient>
+              <ChatWidget />
             </AuthProvider>
           </ReduxProvider>
         </CartProvider>

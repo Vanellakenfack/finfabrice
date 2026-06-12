@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSelector } from 'react-redux'
-import { RootState } from '../../Data/store'
+import { RootState } from '../../Data'
 
 // Interface temporaire pour éviter l'erreur
 interface User {

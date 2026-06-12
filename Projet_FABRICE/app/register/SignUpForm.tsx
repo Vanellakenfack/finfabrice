@@ -5,7 +5,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter } from 'next/navigation';
-import { authService } from "../../services/auth.service"; // Vérifie bien le chemin
+import { authService } from "../../services/auth.service";
+import { useToast } from "../componets/ui/toast";
 
 import { Button } from "../componets/ui/button";
 import { Input } from "../componets/ui/input";
@@ -30,6 +31,7 @@ type SignUpFormValues = z.infer<typeof signUpSchema>;
 
 export default function SignUpPage() {
     const router = useRouter();
+    const { addToast } = useToast();
     const {
         register,
         handleSubmit,
@@ -42,22 +44,20 @@ export default function SignUpPage() {
 
     const onSubmit = async (data: SignUpFormValues) => {
         try {
-            // Payload exact pour Laravel
             const payload = {
                 name: data.fullName,
                 email: data.email,
                 phone: data.phone,
                 password: data.password,
                 password_confirmation: data.confirmPassword,
-                role: data.role
+                role: data.role,
             };
 
             await authService.register(payload);
-            alert("Compte créé ! Connectez-vous.");
+            addToast('Compte créé avec succès ! Connectez-vous.', 'success');
             router.push('/login');
-        } catch (error: any) {
-            console.error('Erreur:', error?.response?.data || error);
-            alert(error?.response?.data?.message || "Erreur lors de l'inscription");
+        } catch {
+            addToast("Erreur lors de l'inscription. Vérifiez vos informations.", 'error');
         }
     };
 

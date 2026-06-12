@@ -14,22 +14,57 @@ class UserController extends Controller
     /**
      * Lister tous les utilisateurs (Admin uniquement)
      */
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::with('roles')->get();
-        
+        $query = User::with('roles');
+
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->where(function ($q) use ($s) {
+                $q->where('name', 'like', "%{$s}%")
+                  ->orWhere('email', 'like', "%{$s}%");
+            });
+        }
+
+        if ($request->filled('role')) {
+            $query->whereHas('roles', fn($q) => $q->where('name', $request->role));
+        }
+
+        if ($request->filled('statut')) {
+            $query->where('is_active', $request->statut === 'Actif');
+        }
+
+        $users = $query->latest()->paginate(20);
+
         return response()->json([
-            'users' => $users->map(function ($user) {
+            'users' => collect($users->items())->map(function ($user) {
                 return [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'phone' => $user->phone,
-                    'role' => $user->roles->first()?->name ?? 'Client',
-                    'statut' => $user->is_active ? 'Actif' : 'Inactif',
+                    'id'               => $user->id,
+                    'name'             => $user->name,
+                    'email'            => $user->email,
+                    'phone'            => $user->phone,
+                    'role'             => $user->roles->first()?->name ?? 'Client',
+                    'statut'           => $user->is_active ? 'Actif' : 'Inactif',
                     'date_inscription' => $user->created_at->format('Y-m-d'),
                 ];
-            })
+            }),
+            'meta' => [
+                'current_page' => $users->currentPage(),
+                'last_page'    => $users->lastPage(),
+                'per_page'     => $users->perPage(),
+                'total'        => $users->total(),
+            ],
+        ]);
+    }
+
+    public function toggleActive(User $user)
+    {
+        $user->is_active = !$user->is_active;
+        $user->save();
+
+        return response()->json([
+            'message' => 'Statut mis à jour',
+            'statut'  => $user->is_active ? 'Actif' : 'Inactif',
         ]);
     }
 
@@ -60,7 +95,7 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'phone' => 'nullable|string|max:20',
-            'password' => 'required|string|min:6',
+            'password' => ['required', \Illuminate\Validation\Rules\Password::min(10)->letters()->mixedCase()->numbers()->symbols()],
             'role' => 'required|string|in:acheteur,vendeur,admin',
         ]);
 
@@ -139,10 +174,10 @@ class UserController extends Controller
     /**
      * Supprimer un utilisateur
      */
-    public function destroy(User $user)
+    public function destroy(Request $request, User $user)
     {
         // Empêcher la suppression de son propre compte
-        if ($user->id === auth()->id()) {
+        if ($user->id === $request->user()->id) {
             return response()->json([
                 'message' => 'Vous ne pouvez pas supprimer votre propre compte'
             ], 403);

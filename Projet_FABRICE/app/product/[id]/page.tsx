@@ -6,7 +6,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { productService } from "../../../services/productService";
 import { allProducts } from "../../Data/products"; 
-import { useCart } from "../../Context/CartContext"; 
+import { useCart } from "../../Context/CartContext";
+import { useSelector } from "react-redux";
+import { RootState } from "../../Data";
 import { 
   FaShoppingCart, FaStar, FaTruck, FaCheckCircle, 
   FaWhatsapp, FaEnvelope, FaArrowLeft, FaShieldAlt, FaPlus
@@ -38,8 +40,7 @@ const ProductPage = () => {
   const [mainImage, setMainImage] = useState<string>("");
   const [activeTab, setActiveTab] = useState<'description' | 'features'>('description');
 
-  // --- LOGIQUE D'AUTHENTIFICATION SIMULÉE ---
-  const isAuthenticated = false; 
+  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
     async function loadProduct() {
@@ -78,13 +79,8 @@ const ProductPage = () => {
   }, [productId]);
 
   const handleBuyNow = () => {
-    if (!isAuthenticated) {
-      const currentUrl = `/product/${productId}`;
-      router.push(`/login?redirect=${encodeURIComponent(currentUrl)}`);
-    } else {
-      addToCart(product);
-      router.push(`/checkout/${productId}`);
-    }
+    addToCart(product);
+    router.push('/checkout');
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-gray-400">Chargement...</div>;
@@ -184,17 +180,17 @@ const ProductPage = () => {
                 <span>Messagerie</span>
               </button> */}
 
-                 <button 
-                    onClick={() => router.push(`/messages?vendor=${product.vendorId || product.id}`)}
-                    className="group w-full h-14 border border-gray-200 text-gray-700 
-                    hover:border-orange-400 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 
-                    hover:text-orange-600 rounded-2xl flex items-center justify-center gap-3 
+                 <button
+                    onClick={() => window.dispatchEvent(new CustomEvent('openChat'))}
+                    className="group w-full h-14 border border-gray-200 text-gray-700
+                    hover:border-orange-400 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100
+                    hover:text-orange-600 rounded-2xl flex items-center justify-center gap-3
                     transition-all duration-300 font-semibold active:scale-95 shadow-sm hover:shadow-md"
                     title="Contacter le vendeur"
                   >
                     <FaEnvelope className="text-xl transition-transform group-hover:scale-110" />
                     <span>Messagerie</span>
-                  </button>     
+                  </button>
 
 
               <a 

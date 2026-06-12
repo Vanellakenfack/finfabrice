@@ -86,10 +86,11 @@ class OrderController extends Controller
     /**
      * Détails d'une commande
      */
-    public function show(Order $order)
+    public function show(Request $request, Order $order)
     {
-        // Vérifier que l'utilisateur est propriétaire ou admin
-        if (auth()->user()->id !== $order->user_id && !auth()->user()->hasRole('admin')) {
+        $user = $request->user();
+
+        if ($user->id !== $order->user_id && !$user->hasRole('admin')) {
             return response()->json(['message' => 'Accès refusé'], 403);
         }
 

@@ -10,13 +10,14 @@ interface LayoutClientProps {
 
 export default function LayoutClient({ children }: LayoutClientProps) {
   const pathname = usePathname();
-  const isHomePage = pathname === "/";
+  const noLayoutPages = ['/login', '/register', '/Dashbord', '/fournisseur', '/acheteur', '/verification'];
+  const showLayout = !noLayoutPages.some(p => pathname === p || pathname.startsWith(p + '/'));
 
   return (
     <>
-      {isHomePage && <Navbar />}
+      {showLayout && <Navbar />}
       {children}
-      {isHomePage && <Footer />}
+      {showLayout && <Footer />}
     </>
   );
 }

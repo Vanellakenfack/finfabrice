@@ -1,11 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
 import { useRouter } from 'next/navigation'
-
-import { verifyOTPStart, verifyOTPSuccess, verifyOTPFailure } from '@/Data/slices/authSlice'
-import { RootState } from '@/Data'
 
 interface OTPVerificationProps {
   type: 'email' | 'phone'
@@ -18,11 +14,11 @@ export const OTPVerification: React.FC<OTPVerificationProps> = ({
   contact,
   onVerify,
 }) => {
-  const dispatch = useDispatch()
   const router = useRouter()
-  const { isLoading, error } = useSelector((state: RootState) => state.auth)
 
   const [otp, setOtp] = useState<string[]>(['', '', '', '', '', ''])
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [countdown, setCountdown] = useState<number>(60)
   const [canResend, setCanResend] = useState<boolean>(false)
 
@@ -63,41 +59,25 @@ export const OTPVerification: React.FC<OTPVerificationProps> = ({
   }
 
   const handleVerify = async () => {
-    const otpCode = otp.join('')
+    const otpCode = otp.join(‘’)
 
     if (otpCode.length !== 6) {
-      dispatch(verifyOTPFailure('Veuillez saisir les 6 chiffres du code'))
+      setError(‘Veuillez saisir les 6 chiffres du code.’)
       return
     }
 
+    setIsLoading(true)
+    setError(null)
+
     try {
-      dispatch(verifyOTPStart())
-
-      // Simulation d'appel API (2 secondes)
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-
-      // Simuler la validation du code OTP
-      console.log('Code OTP soumis:', otpCode, 'pour', contact)
-
-      // Simulation d’une réponse du backend
-      const fakeUser = {
-        id: '1',
-        email: type === 'email' ? contact : 'test@exemple.com',
-        firstName: 'Utilisateur',
-        lastName: 'Test',
-        role: 'acheteur' as const,
-        isVerified: true,
-        createdAt: new Date().toISOString(),
-      }
-
-      const fakeToken = 'fake-jwt-token-12345'
-
-      dispatch(verifyOTPSuccess({ user: fakeUser, token: fakeToken }))
-
+      // TODO: remplacer par l’appel API réel de vérification OTP
+      // await authService.verifyOTP({ type, contact, code: otpCode })
       onVerify()
-      router.push('/dashboard')
-    } catch (err) {
-      dispatch(verifyOTPFailure('Code OTP invalide'))
+      router.push(‘/dashboard’)
+    } catch {
+      setError(‘Code OTP invalide ou expiré.’)
+    } finally {
+      setIsLoading(false)
     }
   }
 

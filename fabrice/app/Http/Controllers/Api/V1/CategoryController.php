@@ -22,41 +22,57 @@ class CategoryController extends Controller
      * Créer une catégorie (Admin/Vendeur)
      */
     public function store(Request $request)
-{
-    // 1. Validation simplifiée pour tester si le timeout disparaît
-    $request->validate([
-        'name' => 'required|string|max:255', // On retire 'unique' pour le test
-    ]);
+    {
+        abort_unless(
+            $request->user() && $request->user()->hasRole(['vendeur', 'admin']),
+            403,
+            'Action non autorisée.'
+        );
 
-    try {
-        // 2. Création manuelle du slug si ton modèle ne le fait pas
-        $category = Category::create([
-            'name'        => $request->name,
-            'slug'        => Str::slug($request->name),
-            'description' => $request->description,
+        $request->validate([
+            'name' => 'required|string|max:255|unique:categories,name',
         ]);
 
-        return response()->json([
-            'message' => 'Catégorie créée avec succès',
-            'data'    => new CategoryResource($category)
-        ], 201);
+        try {
+            $category = Category::create([
+                'name'        => $request->name,
+                'slug'        => Str::slug($request->name),
+                'description' => $request->description,
+            ]);
 
-    } catch (\Exception $e) {
-        // Si ça crash ici, l'erreur s'affichera dans ton inspecteur React (Network tab)
-        return response()->json([
-            'error' => 'Erreur de base de données',
-            'details' => $e->getMessage()
-        ], 500);
+            return response()->json([
+                'message' => 'Catégorie créée avec succès',
+                'data'    => new CategoryResource($category)
+            ], 201);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Erreur de base de données',
+            ], 500);
+        }
     }
-}
+
+    /**
+     * Afficher une catégorie (Admin/Vendeur)
+     */
+    public function show(Category $category)
+    {
+        return new CategoryResource($category);
+    }
 
     /**
      * Mettre à jour une catégorie (Admin/Vendeur)
      */
     public function update(Request $request, Category $category)
     {
+        abort_unless(
+            $request->user() && $request->user()->hasRole(['vendeur', 'admin']),
+            403,
+            'Action non autorisée.'
+        );
+
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => 'required|string|max:255|unique:categories,name,' . $category->id,
         ]);
 
         try {
@@ -72,18 +88,21 @@ class CategoryController extends Controller
             ], 200);
 
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Erreur de base de données',
-                'details' => $e->getMessage()
-            ], 500);
+            return response()->json(['error' => 'Erreur de base de données'], 500);
         }
     }
 
     /**
      * Supprimer une catégorie (Admin/Vendeur)
      */
-    public function destroy(Category $category)
+    public function destroy(Request $request, Category $category)
     {
+        abort_unless(
+            $request->user() && $request->user()->hasRole(['vendeur', 'admin']),
+            403,
+            'Action non autorisée.'
+        );
+
         try {
             $category->delete();
 
@@ -92,10 +111,7 @@ class CategoryController extends Controller
             ], 200);
 
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Erreur de base de données',
-                'details' => $e->getMessage()
-            ], 500);
+            return response()->json(['error' => 'Erreur de base de données'], 500);
         }
     }
 }

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Product } from "../Data/products";
+import { buildImageUrl } from "../../lib/imageUrl";
 import { productService } from "../../services/productService";
 import { categoryService } from "../../services/categoryService"; 
 import Carousel from "../componets/carousel/Carousel";
@@ -143,48 +144,15 @@ const ProductsSection: React.FC = () => {
                         )}
                         {/* Affichage de l'image */}
                         <div className="w-full h-full flex items-center justify-center rounded-2xl bg-gray-100">
-                          {(() => {
-                            // Fonction utilitaire pour construire l'URL de l'image
-                            const buildImageUrl = (imageData: any): string => {
-                              if (!imageData) return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgMTAwTDEyMCA4MEwxNDAgMTAwTDEyMCAxMjBaIiBmaWxsPSIjOUNBM0FGIi8+CjxjaXJjbGUgY3g9IjEwMCIgY3k9IjkwIiByPSI4IiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPg==';
-
-                              const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-                              const baseUrl = apiUrl.replace('/api/v1', '').replace(/\/$/, '') || 'http://localhost:8000';
-
-                              if (typeof imageData === 'string') {
-                                if (imageData.startsWith('http')) {
-                                  return imageData;
-                                } else if (imageData.startsWith('/')) {
-                                  return `${baseUrl}${imageData}`;
-                                } else {
-                                  return `${baseUrl}/storage/${imageData}`;
-                                }
-                              } else if (Array.isArray(imageData) && imageData.length > 0) {
-                                // Si c'est un tableau, prendre la première image
-                                return buildImageUrl(imageData[0]);
-                              }
-
-                              return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgMTAwTDEyMCA4MEwxNDAgMTAwTDEyMCAxMjBaIiBmaWxsPSIjOUNBM0FGIi8+CjxjaXJjbGUgY3g9IjEwMCIgY3k9IjkwIiByPSI4IiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPg==';
-                            };
-
-                            const imageUrl = buildImageUrl(product.images);
-                            console.log('Product:', product.name, 'Images:', product.images, 'Final URL:', imageUrl);
-
-                            console.log('Tentative de chargement de l\'image:', imageUrl);
-
-                            return (
-                              <img
-                                src={imageUrl}
-                                alt={product.name}
-                                className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                                onError={(e) => {
-                                  console.error('Erreur chargement image:', product.images, 'URL:', (e.target as HTMLImageElement).src);
-                                  (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMDAgMTAwTDEyMCA4MEwxNDAgMTAwTDEyMCAxMjBaIiBmaWxsPSIjOUNBM0FGIi8+CjxjaXJjbGUgY3g9IjEwMCIgY3k9IjkwIiByPSI4IiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPg==';
-                                  (e.target as HTMLImageElement).onerror = null;
-                                }}
-                              />
-                            );
-                          })()}
+                          <img
+                            src={buildImageUrl(product.images)}
+                            alt={product.name}
+                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = '/placeholder.png';
+                              (e.target as HTMLImageElement).onerror = null;
+                            }}
+                          />
                         </div>
                       </div>
                     </Link>

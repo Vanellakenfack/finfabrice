@@ -7,9 +7,7 @@ class StoreProductRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // Seuls les vendeurs et admins peuvent créer un produit
-        // return $this->user()->hasRole(['vendeur', 'admin']);
-        return true;
+        return $this->user() && $this->user()->hasRole(['vendeur', 'admin']);
     }
 
     public function rules(): array

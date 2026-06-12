@@ -23,6 +23,47 @@ class ProductController extends Controller
         return ProductResource::collection($products);
     }
 
+    public function adminIndex(Request $request)
+    {
+        $query = Product::with(['category', 'seller']);
+
+        if ($request->filled('search')) {
+            $query->where('name', 'like', '%' . $request->search . '%');
+        }
+
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+
+        if ($request->boolean('low_stock')) {
+            $query->where('quantity', '<', 5);
+        }
+
+        if ($request->filled('is_active')) {
+            $query->where('is_active', filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN));
+        }
+
+        $products = $query->latest()->paginate(15);
+
+        return ProductResource::collection($products);
+    }
+
+    public function toggleActive(Product $product)
+    {
+        $authUser = auth('sanctum')->user();
+        if ($authUser->id !== $product->user_id && !$authUser->hasRole('admin')) {
+            return response()->json(['message' => 'Action non autorisée'], 403);
+        }
+
+        $product->is_active = !$product->is_active;
+        $product->save();
+
+        return response()->json([
+            'message'   => 'Statut mis à jour',
+            'is_active' => $product->is_active,
+        ]);
+    }
+
     public function store(StoreProductRequest $request)
     {
        
@@ -87,10 +128,10 @@ class ProductController extends Controller
 
     public function destroy(Product $product)
     {
-        // Temporairement autorisé pour les tests
-        // if (auth('sanctum')->user()->id !== $product->user_id && !auth('sanctum')->user()->hasRole('admin')) {
-        //     return response()->json(['message' => 'Action non autorisée'], 403);
-        // }
+        $authUser = auth('sanctum')->user();
+        if ($authUser->id !== $product->user_id && !$authUser->hasRole('admin')) {
+            return response()->json(['message' => 'Action non autorisée'], 403);
+        }
 
         $product->delete();
         return response()->json(['message' => 'Produit supprimé avec succès']);

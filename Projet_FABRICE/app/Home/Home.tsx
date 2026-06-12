@@ -7,11 +7,13 @@ import { motion } from 'framer-motion';
 import ProductImageCarousel from '../componets/carousel/ProductImageCarousel';
 import { productService } from '../../services/productService';
 import { Products } from '../types/Products';
-import { 
-  FaShieldAlt, FaHeadset, FaCreditCard, FaShippingFast, 
+import { ProductGridSkeleton } from '../componets/ui/skeleton';
+import {
+  FaShieldAlt, FaHeadset, FaCreditCard, FaShippingFast,
   FaStar, FaFire, FaTruck, FaArrowRight,
   FaHeart, FaGift
 } from 'react-icons/fa';
+import { buildImageUrl } from '../../lib/imageUrl';
 
 export default function HomePage() {
   const [timeLeft, setTimeLeft] = useState({
@@ -93,25 +95,10 @@ export default function HomePage() {
   const displayFeaturedProducts = visibleFeaturedProducts.map((prod) => {
     const isApiProduct = (prod as Products).name !== undefined;
     
-    // Fonction utilitaire pour construire l'URL de l'image
-    const buildImageUrl = (imageData: string | null): string => {
-      if (!imageData) return '/images/default.jpg';
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const baseUrl = apiUrl.replace('/api/v1', '').replace(/\/$/, '') || 'http://localhost:8000';
-      
-      if (imageData.startsWith('http')) {
-        return imageData;
-      } else if (imageData.startsWith('/')) {
-        return `${baseUrl}${imageData}`;
-      } else {
-        return `${baseUrl}/storage/${imageData}`;
-      }
-    };
-
     return {
       id: prod.id,
       title: isApiProduct ? (prod as Products).name : (prod as any).title,
-      img: isApiProduct ? buildImageUrl((prod as Products).images) : (prod as any).img,
+      img: isApiProduct ? buildImageUrl((prod as Products).images as any) : (prod as any).img,
       priceLabel: isApiProduct ? `€${(prod as Products).price.toFixed(2)}` : (prod as any).price,
       old: (prod as any).old,
       badge: (prod as any).badge,
@@ -239,7 +226,10 @@ export default function HomePage() {
           </h2>
 
           <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {displayFeaturedProducts.map((prod) => (
+            {isLoadingFeatured ? (
+              <ProductGridSkeleton count={8} />
+            ) : (
+              displayFeaturedProducts.map((prod) => (
               <Link href={`/product/${prod.id}`} key={prod.id}>
                 <motion.div
                   whileHover={{ y: -5 }}
@@ -291,7 +281,8 @@ export default function HomePage() {
                   </div>
                 </motion.div>
               </Link>
-            ))}
+            ))
+            )}
           </div>
         </section>
 
@@ -305,79 +296,30 @@ export default function HomePage() {
                   <div className="w-24 h-1 bg-orange-500 mx-auto mt-4"></div>
                 </div>
 
-                <div className="relative flex items-center">
-                  {/* Conteneur de l'animation - J'ai augmenté le gap à 20 */}
-                  <div className="animate-infinite-scroll flex items-center gap-20 px-8">
+                <div className="relative flex items-center overflow-hidden">
+                  <div className="animate-infinite-scroll flex items-center gap-16 px-8">
                     {[
-                      { src: '/images/image/appel.jpg', name: 'Apple' },
-                      { src: '/images/image/bmw.jpg', name: 'BMW' },
-                      { src: '/images/image/chevrolet.jpg', name: 'Chevrolet' },
-                      { src: '/images/image/ferari.jpg', name: 'Ferrari' },
-                      { src: '/images/image/gmc.jpg', name: 'GMC' },
-                      { src: '/images/image/huawei.jpg', name: 'Huawei' },
-                      { src: '/images/image/hyundai.jpg', name: 'Hyundai' },
-                      { src: '/images/image/ben.jpg', name: 'Mercedes-Benz' },
-                      { src: '/images/image/4fa82dc7e581e242809ccf28da846ab8.jpg', name: 'Partner' },
-                      { src: '/images/image/fond.jpg', name: 'Brand' },
-                      { src: '/images/image/kia.jpg', name: 'Kia' },
-                      { src: '/images/image/land-rover.jpg', name: 'Land Rover' },
-                      { src: '/images/image/lg.jpg', name: 'LG' },
-                      { src: '/images/image/motorola.jpg', name: 'Motorola' },
-                      { src: '/images/image/nokia.jpg', name: 'Nokia' },
-                      { src: '/images/image/oppel.jpg', name: 'Opel' },
-                      { src: '/images/image/peugeot.jpg', name: 'Peugeot' },
-                      { src: '/images/image/porche.jpg', name: 'Porsche' },
-                      { src: '/images/image/renault.jpg', name: 'Renault' },
-                      { src: '/images/image/sony.jpg', name: 'Sony' },
-                      { src: '/images/image/tesla.jpg', name: 'Tesla' },
-                      { src: '/images/image/toyota.jpg', name: 'Toyota' },
-                      { src: '/images/image/xiomi.jpg', name: 'Xiaomi' },
-                      { src: '/images/image/SAMSUNG.jpg', name: 'Samsung' },
-                    ].concat([
-                      // Répétition identique
-                      { src: '/images/image/appel.jpg', name: 'Apple' },
-                      { src: '/images/image/bmw.jpg', name: 'BMW' },
-                      { src: '/images/image/chevrolet.jpg', name: 'Chevrolet' },
-                      { src: '/images/image/ferari.jpg', name: 'Ferrari' },
-                      { src: '/images/image/gmc.jpg', name: 'GMC' },
-                      { src: '/images/image/huawei.jpg', name: 'Huawei' },
-                      { src: '/images/image/hyundai.jpg', name: 'Hyundai' },
-                      { src: '/images/image/ben.jpg', name: 'Mercedes-Benz' },
-                      { src: '/images/image/4fa82dc7e581e242809ccf28da846ab8.jpg', name: 'Partner' },
-                      { src: '/images/image/fond.jpg', name: 'Brand' },
-                      { src: '/images/image/kia.jpg', name: 'Kia' },
-                      { src: '/images/image/land-rover.jpg', name: 'Land Rover' },
-                      { src: '/images/image/lg.jpg', name: 'LG' },
-                      { src: '/images/image/motorola.jpg', name: 'Motorola' },
-                      { src: '/images/image/nokia.jpg', name: 'Nokia' },
-                      { src: '/images/image/oppel.jpg', name: 'Opel' },
-                      { src: '/images/image/peugeot.jpg', name: 'Peugeot' },
-                      { src: '/images/image/porche.jpg', name: 'Porsche' },
-                      { src: '/images/image/renault.jpg', name: 'Renault' },
-                      { src: '/images/image/sony.jpg', name: 'Sony' },
-                      { src: '/images/image/tesla.jpg', name: 'Tesla' },
-                      { src: '/images/image/toyota.jpg', name: 'Toyota' },
-                      { src: '/images/image/xiomi.jpg', name: 'Xiaomi' },
-                      { src: '/images/image/SAMSUNG.jpg', name: 'Samsung' },
-                    ]).map((brand, index) => (
+                      'Apple', 'Samsung', 'Huawei', 'Xiaomi', 'Sony', 'LG',
+                      'Motorola', 'Nokia', 'Toyota', 'BMW', 'Mercedes-Benz',
+                      'Renault', 'Peugeot', 'Tesla', 'Kia', 'Hyundai',
+                      'Land Rover', 'Ferrari', 'Porsche', 'Chevrolet',
+                      'Apple', 'Samsung', 'Huawei', 'Xiaomi', 'Sony', 'LG',
+                      'Motorola', 'Nokia', 'Toyota', 'BMW', 'Mercedes-Benz',
+                      'Renault', 'Peugeot', 'Tesla', 'Kia', 'Hyundai',
+                    ].map((name, index) => (
                       <div
                         key={index}
-                        className="w-56 h-28 flex-shrink-0 flex items-center justify-center group"
+                        className="flex-shrink-0 flex items-center justify-center group cursor-default"
                       >
-                        <Image
-                          src={brand.src}
-                          alt={brand.name}
-                          width={200}
-                          height={100}
-                          className="object-contain max-h-20 grayscale group-hover:grayscale-0 transition-all duration-300 opacity-60 group-hover:opacity-100"
-                        />
+                        <span className="text-2xl font-black tracking-tight text-gray-300 group-hover:text-gray-600 transition-all duration-300 uppercase whitespace-nowrap select-none">
+                          {name}
+                        </span>
                       </div>
                     ))}
                   </div>
 
-                  {/* Gradients de finition plus larges pour correspondre à la taille des logos */}
-                  <div className="absolute inset-y-0 left-0 w-40 bg-gradient-to-r from-white to-transparent z-10"></div>
-                  <div className="absolute inset-y-0 right-0 w-40 bg-gradient-to-l from-white to-transparent z-10"></div>
+                  <div className="absolute inset-y-0 left-0 w-40 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
+                  <div className="absolute inset-y-0 right-0 w-40 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
                 </div>
               </section>
               

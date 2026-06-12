@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Models\Cart;
+use App\Models\Catalog\Cart;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 
@@ -35,7 +35,7 @@ class CartController extends Controller
                 'product_id' => $request->product_id,
             ],
             [
-                'quantity'   => \DB::raw("quantity + {$request->quantity}")
+                'quantity'   => \DB::raw('quantity + ' . (int)$request->quantity)
             ]
         );
 
@@ -43,9 +43,9 @@ class CartController extends Controller
     }
 
     // Supprimer un article du panier
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
-        Cart::where('user_id', auth()->id())->where('id', $id)->delete();
+        Cart::where('user_id', $request->user()->id)->where('id', $id)->delete();
         return response()->json(['message' => 'Article retiré du panier']);
     }
 }

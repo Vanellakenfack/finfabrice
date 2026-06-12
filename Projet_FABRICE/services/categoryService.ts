@@ -4,10 +4,10 @@ import { Category } from '@/types/Category';
 export const  categoryService ={
 
       getAll: async (): Promise<Category[]> => {
-        const reponse = await api.get<{data:Category[]}>('/categories');
+        const response = await api.get<{data:Category[]}>('/categories');
         
         // Si l'API retourne { data: [...] } ou directement [...]
-        const data = reponse.data.data || reponse.data;
+        const data = response.data.data || response.data;
         return Array.isArray(data) ? data : [];
     },
 
@@ -18,10 +18,10 @@ export const  categoryService ={
 
     // Dans categoryService.ts
     create: async (data: Partial<Category>): Promise<Category> => {
-        const reponse = await api.post('/categories', data);
+        const response = await api.post('/categories', data);
         // Ton contrôleur Laravel renvoie { message: "...", data: {...} }
-        // Donc on retourne reponse.data.data
-        return reponse.data.data;
+        // Donc on retourne response.data.data
+        return response.data.data;
     },
 
     update: async (id: number | string, data: Partial<Category>): Promise<Category> => {

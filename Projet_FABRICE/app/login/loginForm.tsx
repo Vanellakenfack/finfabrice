@@ -1,13 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useDispatch } from 'react-redux'
 import { authService } from '../../services/auth.service'
 import { setCredentials, authStart, authFailure } from '../Data/slices/authSlice'
+import { useToast } from '../componets/ui/toast'
 
-export const LoginForm = () => {
+export const LoginForm = ({ userType }: { userType?: string }) => {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get('redirect')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
@@ -17,6 +20,7 @@ export const LoginForm = () => {
   })
 
   const dispatch = useDispatch()
+  const { addToast } = useToast()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -35,53 +39,38 @@ export const LoginForm = () => {
     try {
       // 1. Appel de l'API Laravel
       const loginData = await authService.login(credentials)
-      console.log("LoginData reçu:", loginData)
-      
-      // Extraction sécurisée du token et de l'user
-      // On gère les deux cas : si c'est directement dans l'objet ou dans .data
-      const token = loginData.access_token || loginData.data?.access_token
+
       const userData = loginData.user || loginData.data?.user
-      
-      if (!token) {
-        throw new Error("Le serveur n'a pas renvoyé de jeton d'accès.")
+
+      if (!userData) {
+        throw new Error("Le serveur n'a pas renvoyé les données utilisateur.")
       }
 
-      // 2. Stockage du token
-      localStorage.setItem('token', token)
+      // Le token est dans un cookie HttpOnly — on stocke uniquement le profil utilisateur.
+      dispatch(setCredentials({ user: userData, token: null }))
       
-      // 3. Mise à jour de Redux
-      dispatch(setCredentials({ user: userData, token }))
+      addToast('Connexion réussie ! Bienvenue sur Fabrice.', 'success')
       
       // 4. Détermination du rôle (vérification dans le tableau roles)
       const userRoles = userData?.roles || []
       const isAdmin = userRoles.includes('admin')
       const isVendeur = userRoles.includes('vendeur') || userRoles.includes('fournisseur')
-      const isAcheteur = userRoles.includes('acheteur')
-      
-      console.log('Rôles détectés:', userRoles)
-      
-      // 5. Redirection selon le rôle
-      if (isAdmin) {
-        console.log('Redirection vers Dashboard admin')
+
+      if (redirectTo) {
+        router.push(redirectTo)
+      } else if (isAdmin) {
         router.push('/Dashbord')
       } else if (isVendeur) {
-        console.log('Redirection vers fournisseur')
         router.push('/fournisseur')
-      } else if (isAcheteur) {
-        console.log('Redirection vers acheteur')
-        router.push('/acheteur')
       } else {
-        console.warn('Aucun rôle reconnu, redirection vers /acheteur')
         router.push('/acheteur')
       }
       
     } catch (err: any) {
-      console.error("Erreur de connexion détaillée:", err)
-      
-      // CORRECTION SYNTAXE ICI
-      const errorMsg = err.response?.data?.message || 'Email ou mot de passe incorrect'
+      const errorMsg = 'Email ou mot de passe incorrect.'
       setError(errorMsg)
       dispatch(authFailure(errorMsg))
+      addToast(errorMsg, 'error')
     } finally {
       setIsLoading(false)
     }
@@ -145,34 +134,13 @@ export const LoginForm = () => {
         </button>
       </form>
 
-      <div className="mt-6 pt-6 border-t border-gray-200">
-        <p className="text-xs text-gray-500 text-center mb-3 italic">
-          Comptes de test rapides :
+      <div className="mt-6 pt-6 border-t border-gray-200 text-center">
+        <p className="text-sm text-gray-500">
+          Pas encore de compte ?{' '}
+          <a href="/register" className="text-blue-600 hover:underline font-medium">
+            S'inscrire
+          </a>
         </p>
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <button
-            type="button"
-            onClick={() => setLocalCredentials({ email: 'vanella@gmail.com', password: 'vcalm123' })}
-            className="bg-gray-50 text-gray-600 py-2 rounded border border-gray-200 hover:bg-gray-100"
-          >
-            Acheteur ()
-          </button>
-          <button
-            type="button"
-            onClick={() => setLocalCredentials({ email: 'vendeur@demo.com', password: 'vcalm123' })}
-            className="bg-gray-50 text-gray-600 py-2 rounded border border-gray-200 hover:bg-gray-100"
-          >
-            Vendeur 
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setCredentials({ email: 'admin@demo.com', password: 'demo123' })}
-            className="bg-purple-100 text-purple-700 py-2 rounded hover:bg-purple-200 transition-colors"
-          >
-            Admin
-          </button>
-        </div>
       </div>
     </div>
   )
